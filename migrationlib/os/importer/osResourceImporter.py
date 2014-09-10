@@ -81,6 +81,12 @@ class ResourceImporter(osCommon.osCommon):
         self.funcs = []
         LOG.info("| Resource migrated")
 
+    def check_bool(self, bool_entry):
+        if isinstance(bool_entry, basestring):
+            return True if bool_entry.lower() == "true" else False
+        else:
+            return bool_entry
+
     @inspect_func
     @supertask
     def upload(self, data=None, **kwargs):
@@ -121,7 +127,7 @@ class ResourceImporter(osCommon.osCommon):
             if not tenant.name.lower() in existing_tenants_lower:
                 dest_tenant = self.keystone_client.tenants.create(tenant_name=tenant.name,
                                                                   description=tenant.description,
-                                                                  enabled=tenant.enabled)
+                                                                  enabled=self.check_bool(tenant.enabled))
             elif not tenant.name in existing_tenants:
                 ex_tenant = existing_tenants_lower[tenant.name.lower()]
                 dest_tenant = self.keystone_client.tenants.update(ex_tenant.id, tenant_name=tenant.name)
@@ -135,7 +141,7 @@ class ResourceImporter(osCommon.osCommon):
                                                                   password=new_password,
                                                                   email=user.email,
                                                                   tenant_id=dest_tenant.id,
-                                                                  enabled=user.enabled)
+                                                                  enabled=self.check_bool(user.enabled))
                     self.users_notifications[user.name] = {
                         'email': user.email,
                         'password': new_password
@@ -172,7 +178,7 @@ class ResourceImporter(osCommon.osCommon):
                                                               swap=flavor.swap,
                                                               rxtx_factor=flavor.rxtx_factor,
                                                               ephemeral=flavor.ephemeral,
-                                                              is_public=flavor.is_public)
+                                                              is_public=self.check_bool(flavor.is_public))
                 for tenant in tenants:
                     dest_tenant = self.keystone_client.tenants.find(name=tenant)
                     self.nova_client.flavor_access.add_tenant_access(dest_flavor, dest_tenant.id)
