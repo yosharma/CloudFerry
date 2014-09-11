@@ -166,7 +166,7 @@ class ResourceImporter(osCommon.osCommon):
     def upload_flavors(self, data=None, **kwargs):
         flavors = data['flavors'] if data else self.data['flavors']
         # do not import a flavor if one with the same name already exists
-        existing = {f.name for f in self.nova_client.flavors.list()}
+        existing = {f.name for f in self.nova_client.flavors.list(is_public=None)}
         for (flavor, tenants) in flavors:
             if flavor.name not in existing:
                 if flavor.swap == "":
