@@ -97,7 +97,8 @@ class ResourceImporter(osCommon.osCommon):
             .upload_flavors()\
             .upload_user_passwords()\
             .send_email_notifications()\
-            .upload_security_groups()
+            .upload_security_groups()\
+            .upload_neutron_networks()
         return self
 
     @inspect_func
@@ -278,3 +279,27 @@ class ResourceImporter(osCommon.osCommon):
                                                                     "remote_ip_prefix": cidr})
             converted_groups.append(converted_group)
         return converted_groups
+
+    @inspect_func
+    @log_step(LOG)
+    def upload_neutron_networks(self, data=None, **kwargs):
+        data = data if data else self.data
+        src_nets = data['neutron']['networks']
+        existing_nets = self.network_client.list_networks()['networks']
+        existing_nets_names = [net['name'] for net in existing_nets]
+        for src_net in src_nets:
+            tenant_id = osCommon.osCommon.get_tenant_id_by_name(self.keystone_client, src_net['tenant_name'])
+            if not src_net['name'].lower() in map(lambda name: name.lower(), existing_nets_names):
+                self.network_client.create_network({'network': {'name': src_net['name'],
+                                                                'admin_state_up': src_net['admin_state_up'],
+                                                                'tenant_id': tenant_id,
+                                                                'shared': src_net['shared']}})
+            else:
+                for existing_net in existing_nets:
+                    if existing_net['name'].lower() == src_net['name'].lower() \
+                            and self.keystone_client.tenants.get(existing_net['tenant_id']).name != src_net['tenant_name']:
+                        self.network_client.create_network({'network': {'name': src_net['name'],
+                                                                        'admin_state_up': src_net['admin_state_up'],
+                                                                        'tenant_id': tenant_id,
+                                                                        'shared': src_net['shared']}})
+        return self

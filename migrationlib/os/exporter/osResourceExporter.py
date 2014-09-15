@@ -21,12 +21,13 @@ from utils import log_step, get_log, render_info, write_info
 import sqlalchemy
 
 LOG = get_log(__name__)
+ADMIN_TENANT = 'admin'
 
 
 class ResourceExporter(osCommon.osCommon):
     """
-    Exports various cloud resources (tenants, users, flavors, etc.) to a container
-    to be later imported by ResourceImporter
+    Exports various cloud resources (tenants, users, flavors, etc.)
+    to a container to be later imported by ResourceImporter
     """
 
     def __init__(self, conf):
@@ -111,8 +112,24 @@ class ResourceExporter(osCommon.osCommon):
         self.data['users'] = info
 
     @log_step(LOG)
+    def get_neutron_networks(self):
+        networks = self.network_client.list_networks()['networks']
+        tenants_ids = [tenant.id for tenant in self.keystone_client.tenants.list()]
+        self.data['neutron'] = dict()
+        self.data['neutron']['networks'] = []
+        for network in networks:
+            source_net = dict()
+            source_net['name'] = network['name']
+            if network['admin_state_up']:
+                source_net['admin_state_up'] = network['admin_state_up']
+            if network['tenant_id'] in tenants_ids:
+                source_net['tenant_name'] = self.keystone_client.tenants.get(network['tenant_id']).name
+            else:
+                source_net['tenant_name'] = ADMIN_TENANT
+            source_net['shared'] = network['shared']
+            self.data['neutron']['networks'].append(source_net)
+        return self
+
+    @log_step(LOG)
     def build(self):
         return self.data
-
-
-
