@@ -151,5 +151,26 @@ class ResourceExporter(osCommon.osCommon):
         return self
 
     @log_step(LOG)
+    def get_neutron_routers(self):
+        routers = self.network_client.list_routers()['routers']
+        tenants_ids = [tenant.id for tenant in self.keystone_client.tenants.list()]
+        self.data['neutron']['routers'] = []
+        for router in routers:
+            src_router = dict()
+            src_router['name'] = router['name']
+            if router['admin_state_up']:
+                src_router['admin_state_up'] = router['admin_state_up']
+            if router['routes']:
+                src_router['routes'] = router['routes']
+            if router['external_gateway_info']:
+                src_router['external_gateway_info'] = router['external_gateway_info']
+            if router['tenant_id'] in tenants_ids:
+                src_router['tenant_name'] = self.keystone_client.tenants.get(router['tenant_id']).name
+            else:
+                src_router['tenant_name'] = ADMIN_TENANT
+            self.data['neutron']['routers'].append(src_router)
+        return self
+
+    @log_step(LOG)
     def build(self):
         return self.data

@@ -99,7 +99,8 @@ class ResourceImporter(osCommon.osCommon):
             .send_email_notifications()\
             .upload_security_groups()\
             .upload_neutron_networks()\
-            .upload_neutron_subnets()
+            .upload_neutron_subnets()\
+            .upload_neutron_routers()
         return self
 
     @inspect_func
@@ -333,4 +334,23 @@ class ResourceImporter(osCommon.osCommon):
                                                                       'network_id': network_id,
                                                                       'cidr': src_subnet['cidr'],
                                                                       'ip_version': src_subnet['ip_version']}})
+        return self
+
+    @inspect_func
+    @log_step(LOG)
+    def upload_neutron_routers(self, data=None, **kwargs):
+        data = data if data else self.data
+        src_routers = data['neutron']['subnets']
+        existing_routers = self.network_client.list_routers()['routers']
+        existing_routers_names = [router['name'] for router in existing_routers]
+        for src_router in src_routers:
+            tenant_id = osCommon.osCommon.get_tenant_id_by_name(self.keystone_client, src_router['tenant_name'])
+            if src_router['name'].lower not in max(lambda name: name.lower(), existing_routers_names):
+                self.network_client.create_router({'router': {'name': src_router['name'],
+                                                              'tenant_id': tenant_id}})
+            else:
+                for existing_router in existing_routers:
+                    if existing_router['name'] == src_router and existing_router['tenant_id'] != tenant_id:
+                        self.network_client.create_router({'router': {'name': src_router['name'],
+                                                                      'tenant_id': tenant_id}})
         return self
