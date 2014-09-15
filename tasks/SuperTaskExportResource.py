@@ -31,6 +31,7 @@ class SuperTaskExportResource(SuperTask):
                 TaskNetworkServiceInfoResource(),
                 TaskSecurityGroupsResource(),
                 TaskNeutronNetworksResource(),
+                TaskNeutronSubnetsResource(),
                 TaskBuildResource()]
 
 
@@ -92,6 +93,15 @@ class TaskNeutronNetworksResource(Task):
 
     def run(self, res_exporter=None, **kwargs):
         resources = res_exporter.get_neutron_networks()
+        return {
+            'resources': resources
+        }
+
+
+class TaskNeutronSubnetsResource(Task):
+
+    def run(self, res_exporter=None, **kwargs):
+        resources = res_exporter.get_neutron_subnets()
         return {
             'resources': resources
         }

@@ -131,5 +131,25 @@ class ResourceExporter(osCommon.osCommon):
         return self
 
     @log_step(LOG)
+    def get_neutron_subnets(self):
+        subnets = self.network_client.list_subnets()['subnets']
+        tenants_ids = [tenant.id for tenant in self.keystone_client.tenants.list()]
+        self.data['neutron']['subnets'] = []
+        for subnet in subnets:
+            src_subnet = dict()
+            src_subnet['name'] = subnet['name']
+            src_subnet['enable_dhcp'] = subnet['enable_dhcp']
+            src_subnet['network_name'] = self.network_client.show_network(subnet['network_id'])['network']['name']
+            src_subnet['allocation_pools'] = subnet['allocation_pools']
+            src_subnet['ip_version'] = subnet['ip_version']
+            if subnet['tenant_id'] in tenants_ids:
+                src_subnet['tenant_name'] = self.keystone_client.tenants.get(subnet['tenant_id']).name
+            else:
+                src_subnet['tenant_name'] = ADMIN_TENANT
+            src_subnet['cidr'] = subnet['cidr']
+            self.data['neutron']['subnets'].append(src_subnet)
+        return self
+
+    @log_step(LOG)
     def build(self):
         return self.data

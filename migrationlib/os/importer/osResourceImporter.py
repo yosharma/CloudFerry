@@ -98,7 +98,8 @@ class ResourceImporter(osCommon.osCommon):
             .upload_user_passwords()\
             .send_email_notifications()\
             .upload_security_groups()\
-            .upload_neutron_networks()
+            .upload_neutron_networks()\
+            .upload_neutron_subnets()
         return self
 
     @inspect_func
@@ -302,4 +303,34 @@ class ResourceImporter(osCommon.osCommon):
                                                                         'admin_state_up': src_net['admin_state_up'],
                                                                         'tenant_id': tenant_id,
                                                                         'shared': src_net['shared']}})
+        return self
+
+    @inspect_func
+    @log_step(LOG)
+    def upload_neutron_subnets(self, data=None, **kwargs):
+        data = data if data else self.data
+        src_subnets = data['neutron']['subnets']
+        existing_nets = self.network_client.list_networks()['networks']
+        existing_subnets = self.network_client.list_subnets()['subnets']
+        existing_subnets_names = [subnet['name'] for subnet in existing_subnets]
+        for src_subnet in src_subnets:
+            tenant_id = osCommon.osCommon.get_tenant_id_by_name(self.keystone_client, src_subnet['tenant_name'])
+            for network in existing_nets:
+                if network['name'] == src_subnet['network_name']:
+                    network_id = network['id']
+            if not src_subnet['name'].lower() in map(lambda name: name.lower(), existing_subnets_names):
+                self.network_client.create_subnet({'subnet': {'name': src_subnet['name'],
+                                                              'enable_dhcp': src_subnet['enable_dhcp'],
+                                                              'network_id': network_id,
+                                                              'cidr': src_subnet['cidr'],
+                                                              'ip_version': src_subnet['ip_version']}})
+            else:
+                for existing_subnet in existing_subnets:
+                    if existing_subnet['name'] == src_subnet['name'] \
+                            and existing_subnet['tenant_id'] != tenant_id:
+                        self.network_client.create_subnet({'subnet': {'name': src_subnet['name'],
+                                                                      'enable_dhcp': src_subnet['enable_dhcp'],
+                                                                      'network_id': network_id,
+                                                                      'cidr': src_subnet['cidr'],
+                                                                      'ip_version': src_subnet['ip_version']}})
         return self
