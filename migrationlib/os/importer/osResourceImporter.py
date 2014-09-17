@@ -324,7 +324,8 @@ class ResourceImporter(osCommon.osCommon):
                                                               'enable_dhcp': src_subnet['enable_dhcp'],
                                                               'network_id': network_id,
                                                               'cidr': src_subnet['cidr'],
-                                                              'ip_version': src_subnet['ip_version']}})
+                                                              'ip_version': src_subnet['ip_version'],
+                                                              'tenant_id': tenant_id}})
             else:
                 for existing_subnet in existing_subnets:
                     if existing_subnet['name'] == src_subnet['name'] \
@@ -333,14 +334,15 @@ class ResourceImporter(osCommon.osCommon):
                                                                       'enable_dhcp': src_subnet['enable_dhcp'],
                                                                       'network_id': network_id,
                                                                       'cidr': src_subnet['cidr'],
-                                                                      'ip_version': src_subnet['ip_version']}})
+                                                                      'ip_version': src_subnet['ip_version'],
+                                                                      'tenant_id': tenant_id}})
         return self
 
     @inspect_func
     @log_step(LOG)
     def upload_neutron_routers(self, data=None, **kwargs):
         data = data if data else self.data
-        src_routers = data['neutron']['subnets']
+        src_routers = data['neutron']['routers']
         existing_routers = self.network_client.list_routers()['routers']
         existing_routers_names = [router['name'] for router in existing_routers]
         for src_router in src_routers:
