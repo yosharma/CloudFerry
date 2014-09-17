@@ -100,7 +100,8 @@ class ResourceImporter(osCommon.osCommon):
             .upload_security_groups()\
             .upload_neutron_networks()\
             .upload_neutron_subnets()\
-            .upload_neutron_routers()
+            .upload_neutron_routers()\
+            .upload_router_ports()
         return self
 
     @inspect_func
@@ -355,4 +356,33 @@ class ResourceImporter(osCommon.osCommon):
                     if existing_router['name'] == src_router and existing_router['tenant_id'] != tenant_id:
                         self.network_client.create_router({'router': {'name': src_router['name'],
                                                                       'tenant_id': tenant_id}})
+        return self
+
+    @inspect_func
+    @log_step(LOG)
+    def upload_router_ports(self, data=None, **kwargs):
+        data = data if data else self.data
+        existing_nets = self.network_client.list_networks()['networks']
+        existing_subnets = self.network_client.list_subnets()['subnets']
+        existing_routers = self.network_client.list_routers()['routers']
+        src_ports = data['neutron']['ports']
+        existing_ports = self.network_client.list_ports()['ports']
+        existing_ports_macs = [port['mac_address'] for port in existing_ports]
+        for port_src in src_ports:
+            tenant_id = osCommon.osCommon.get_tenant_id_by_name(self.keystone_client, port_src['tenant_name'])
+            for network in existing_nets:
+                if network['name'] == port_src['network_name'] and network['tenant_id'] == tenant_id:
+                    network_id = network['id']
+            for subnet in existing_subnets:
+                if port_src['subnet_name'] == subnet['name'] and subnet['tenant_id'] == tenant_id:
+                    subnet_id = subnet['id']
+            for router in existing_routers:
+                if router['name'] == port_src['router_name'] and router['tenant_id'] == tenant_id:
+                    router_id = router['id']
+            if port_src['mac_address'] not in existing_ports_macs:
+                self.network_client.create_port({'port': {'network_id': network_id,
+                                                         'mac_address': port_src['mac_address'],
+                                                         'fixed_ips': [{'subnet_id': subnet_id, 'ip_address': port_src['ip_address']}],
+                                                         'device_id': router_id,
+                                                         'tenant_id': tenant_id}})
         return self
