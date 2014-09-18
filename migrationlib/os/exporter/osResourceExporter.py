@@ -114,84 +114,72 @@ class ResourceExporter(osCommon.osCommon):
     @log_step(LOG)
     def get_neutron_networks(self):
         networks = self.network_client.list_networks()['networks']
-        tenants_ids = [tenant.id for tenant in self.keystone_client.tenants.list()]
-        self.data['neutron'] = dict()
-        self.data['neutron']['networks'] = []
+        get_tenant_name = self.__get_tenants_func()
+        self.data['neutron'] = dict(networks=[])
         for network in networks:
             source_net = dict()
             source_net['name'] = network['name']
-            if network['admin_state_up']:
-                source_net['admin_state_up'] = network['admin_state_up']
-            if network['tenant_id'] in tenants_ids:
-                source_net['tenant_name'] = self.keystone_client.tenants.get(network['tenant_id']).name
-            else:
-                source_net['tenant_name'] = ADMIN_TENANT
+            source_net['admin_state_up'] = network['admin_state_up']
             source_net['shared'] = network['shared']
+            source_net['tenant_name'] = get_tenant_name(network['tenant_id'])
             self.data['neutron']['networks'].append(source_net)
         return self
 
     @log_step(LOG)
     def get_neutron_subnets(self):
         subnets = self.network_client.list_subnets()['subnets']
-        tenants_ids = [tenant.id for tenant in self.keystone_client.tenants.list()]
+        get_tenant_name = self.__get_tenants_func()
         self.data['neutron']['subnets'] = []
         for subnet in subnets:
             src_subnet = dict()
             src_subnet['name'] = subnet['name']
             src_subnet['enable_dhcp'] = subnet['enable_dhcp']
-            src_subnet['network_name'] = self.network_client.show_network(subnet['network_id'])['network']['name']
             src_subnet['allocation_pools'] = subnet['allocation_pools']
             src_subnet['ip_version'] = subnet['ip_version']
-            if subnet['tenant_id'] in tenants_ids:
-                src_subnet['tenant_name'] = self.keystone_client.tenants.get(subnet['tenant_id']).name
-            else:
-                src_subnet['tenant_name'] = ADMIN_TENANT
             src_subnet['cidr'] = subnet['cidr']
+            src_subnet['network_name'] = self.network_client.show_network(subnet['network_id'])['network']['name']
+            src_subnet['tenant_name'] = get_tenant_name(subnet['tenant_id'])
             self.data['neutron']['subnets'].append(src_subnet)
         return self
 
     @log_step(LOG)
     def get_neutron_routers(self):
         routers = self.network_client.list_routers()['routers']
-        tenants_ids = [tenant.id for tenant in self.keystone_client.tenants.list()]
+        get_tenant_name = self.__get_tenants_func()
         self.data['neutron']['routers'] = []
         for router in routers:
             src_router = dict()
             src_router['name'] = router['name']
-            if router['admin_state_up']:
-                src_router['admin_state_up'] = router['admin_state_up']
-            if router['routes']:
-                src_router['routes'] = router['routes']
-            if router['external_gateway_info']:
-                src_router['external_gateway_info'] = router['external_gateway_info']
-            if router['tenant_id'] in tenants_ids:
-                src_router['tenant_name'] = self.keystone_client.tenants.get(router['tenant_id']).name
-            else:
-                src_router['tenant_name'] = ADMIN_TENANT
+            src_router['admin_state_up'] = router['admin_state_up']
+            src_router['routes'] = router['routes']
+            src_router['external_gateway_info'] = router['external_gateway_info']
+            src_router['tenant_name'] = get_tenant_name(router['tenant_id'])
             self.data['neutron']['routers'].append(src_router)
         return self
 
     @log_step(LOG)
     def get_router_ports(self):
         ports = self.network_client.list_ports()['ports']
-        tenants_ids = [tenant.id for tenant in self.keystone_client.tenants.list()]
+        get_tenant_name = self.__get_tenants_func()
         self.data['neutron']['ports'] = []
-        for port in ports:
-            if port['device_owner'] == 'network:router_interface':
-                router_port = dict()
-                if port['name']:
-                    router_port['name'] = port['name']
-                router_port['network_name'] = self.network_client.show_network(port['network_id'])['network']['name']
-                router_port['mac_address'] = port['mac_address']
-                router_port['subnet_name'] = self.network_client.show_subnet(port['fixed_ips'][0]['subnet_id'])['subnet']['name']
-                router_port['ip_address'] = port['fixed_ips'][0]['ip_address']
-                router_port['router_name'] = self.network_client.show_router(port['device_id'])['router']['name']
-                if port['tenant_id'] in tenants_ids:
-                    router_port['tenant_name'] = self.keystone_client.tenants.get(port['tenant_id']).name
-                else:
-                    router_port['tenant_name'] = ADMIN_TENANT
-                self.data['neutron']['ports'].append(router_port)
+        for port in filter(lambda p: p['device_owner'] == 'network:router_interface', ports):
+            router_port = dict()
+            router_port['network_name'] = self.network_client.show_network(port['network_id'])['network']['name']
+            router_port['mac_address'] = port['mac_address']
+            router_port['subnet_name'] = self.network_client.show_subnet(port['fixed_ips'][0]['subnet_id'])['subnet']['name']
+            router_port['ip_address'] = port['fixed_ips'][0]['ip_address']
+            router_port['router_name'] = self.network_client.show_router(port['device_id'])['router']['name']
+            router_port['tenant_name'] = get_tenant_name(port['tenant_id'])
+            self.data['neutron']['ports'].append(router_port)
         return self
+
+    def __get_tenants_func(self):
+        tenants = {tenant.id: tenant.name for tenant in self.keystone_client.tenants.list()}
+
+        def f(tenant_id):
+            return tenants[tenant_id] if tenant_id in tenants.keys() else ADMIN_TENANT
+
+        return f
 
     @log_step(LOG)
     def build(self):
