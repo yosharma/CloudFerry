@@ -78,7 +78,6 @@ class ResourceExporter(osCommon.osCommon):
     @log_step(LOG)
     def detect_neutron(self):
         self.__data_network_service_dict_init()
-        # self.data['network_service_info']['service']  = self.__get_is_neutron()
         self.data['network_service_info']['service'] = osCommon.osCommon.network_service(self)
 
     @log_step(LOG)
@@ -110,6 +109,16 @@ class ResourceExporter(osCommon.osCommon):
                                                        user_id=user.id):
                         info[user.name] = password[0]
         self.data['users'] = info
+
+    @log_step(LOG)
+    def get_network_resources(self):
+        if osCommon.osCommon.network_service(self) == 'neutron':
+            self\
+                .get_neutron_networks()\
+                .get_neutron_subnets()\
+                .get_neutron_routers()\
+                .get_neutron_router_ports()
+        return self
 
     @log_step(LOG)
     def get_neutron_networks(self):
@@ -158,7 +167,7 @@ class ResourceExporter(osCommon.osCommon):
         return self
 
     @log_step(LOG)
-    def get_router_ports(self):
+    def get_neutron_router_ports(self):
         ports = self.network_client.list_ports()['ports']
         get_tenant_name = self.__get_tenants_func()
         self.data['neutron']['ports'] = []

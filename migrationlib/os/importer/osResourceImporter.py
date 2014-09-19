@@ -98,10 +98,7 @@ class ResourceImporter(osCommon.osCommon):
             .upload_user_passwords()\
             .send_email_notifications()\
             .upload_security_groups()\
-            .upload_neutron_networks()\
-            .upload_neutron_subnets()\
-            .upload_neutron_routers()\
-            .upload_router_ports()
+            .upload_network_resources()
         return self
 
     @inspect_func
@@ -285,9 +282,16 @@ class ResourceImporter(osCommon.osCommon):
 
     @inspect_func
     @log_step(LOG)
-    def upload_neutron_networks(self, data=None, **kwargs):
+    def upload_network_resources(self, data=None, **kwargs):
         data = data if data else self.data
-        src_nets = data['neutron']['networks']
+        if data['network_service_info']['service'] == 'neutron':
+            self.__upload_neutron_networks(data['neutron']['networks'])
+            self.__upload_neutron_subnets(data['neutron']['subnets'])
+            self.__upload_neutron_routers(data['neutron']['routers'])
+            self.__upload_router_ports(data['neutron']['ports'])
+        return self
+
+    def __upload_neutron_networks(self, src_nets, **kwargs):
         existing_nets = self.network_client.list_networks()['networks']
         for src_net in src_nets:
             tenant_id = osCommon.osCommon.get_tenant_id_by_name(self.keystone_client, src_net['tenant_name'])
@@ -305,11 +309,7 @@ class ResourceImporter(osCommon.osCommon):
                         self.network_client.create_network(network_info)
         return self
 
-    @inspect_func
-    @log_step(LOG)
-    def upload_neutron_subnets(self, data=None, **kwargs):
-        data = data if data else self.data
-        src_subnets = data['neutron']['subnets']
+    def __upload_neutron_subnets(self, src_subnets):
         existing_nets = self.network_client.list_networks()['networks']
         existing_subnets = self.network_client.list_subnets()['subnets']
         for src_subnet in src_subnets:
@@ -331,11 +331,7 @@ class ResourceImporter(osCommon.osCommon):
                         self.network_client.create_subnet(subnet_info)
         return self
 
-    @inspect_func
-    @log_step(LOG)
-    def upload_neutron_routers(self, data=None, **kwargs):
-        data = data if data else self.data
-        src_routers = data['neutron']['routers']
+    def __upload_neutron_routers(self, src_routers):
         existing_routers = self.network_client.list_routers()['routers']
         for src_router in src_routers:
             tenant_id = osCommon.osCommon.get_tenant_id_by_name(self.keystone_client, src_router['tenant_name'])
@@ -351,11 +347,7 @@ class ResourceImporter(osCommon.osCommon):
                         self.network_client.create_router(router_info)
         return self
 
-    @inspect_func
-    @log_step(LOG)
-    def upload_router_ports(self, data=None, **kwargs):
-        data = data if data else self.data
-        src_ports = data['neutron']['ports']
+    def __upload_router_ports(self, src_ports):
         existing_nets = self.network_client.list_networks()['networks']
         existing_subnets = self.network_client.list_subnets()['subnets']
         existing_routers = self.network_client.list_routers()['routers']
