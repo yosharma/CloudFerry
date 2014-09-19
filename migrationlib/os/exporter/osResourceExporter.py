@@ -166,7 +166,8 @@ class ResourceExporter(osCommon.osCommon):
             router_port = dict()
             router_port['network_name'] = self.network_client.show_network(port['network_id'])['network']['name']
             router_port['mac_address'] = port['mac_address']
-            router_port['subnet_name'] = self.network_client.show_subnet(port['fixed_ips'][0]['subnet_id'])['subnet']['name']
+            router_port['subnet_name'] = \
+                self.network_client.show_subnet(port['fixed_ips'][0]['subnet_id'])['subnet']['name']
             router_port['ip_address'] = port['fixed_ips'][0]['ip_address']
             router_port['router_name'] = self.network_client.show_router(port['device_id'])['router']['name']
             router_port['tenant_name'] = get_tenant_name(port['tenant_id'])

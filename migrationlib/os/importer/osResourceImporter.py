@@ -289,23 +289,20 @@ class ResourceImporter(osCommon.osCommon):
         data = data if data else self.data
         src_nets = data['neutron']['networks']
         existing_nets = self.network_client.list_networks()['networks']
-        existing_nets_names = [net['name'] for net in existing_nets]
         for src_net in src_nets:
             tenant_id = osCommon.osCommon.get_tenant_id_by_name(self.keystone_client, src_net['tenant_name'])
-            tenant_ids_with_src_net = [ex_net['tenant_id'] for ex_net in existing_nets if ex_net['name'] == src_net['name']]
-            if not src_net['name'].lower() in map(lambda name: name.lower(), existing_nets_names):
-                self.network_client.create_network({'network': {'name': src_net['name'],
-                                                                'admin_state_up': src_net['admin_state_up'],
-                                                                'tenant_id': tenant_id,
-                                                                'shared': src_net['shared']}})
+            tenant_ids_with_src_net = \
+                [ex_net['tenant_id'] for ex_net in existing_nets if ex_net['name'] == src_net['name']]
+            network_info = {'network': {'name': src_net['name'],
+                                        'admin_state_up': src_net['admin_state_up'],
+                                        'tenant_id': tenant_id,
+                                        'shared': src_net['shared']}}
+            if src_net['name'].lower() not in [name['name'].lower() for name in existing_nets]:
+                self.network_client.create_network(network_info)
             else:
-                for existing_net in existing_nets:
-                    if existing_net['name'].lower() == src_net['name'].lower() \
-                            and existing_net['tenant_id'] not in tenant_ids_with_src_net:
-                        self.network_client.create_network({'network': {'name': src_net['name'],
-                                                                        'admin_state_up': src_net['admin_state_up'],
-                                                                        'tenant_id': tenant_id,
-                                                                        'shared': src_net['shared']}})
+                for ex_net in filter(lambda net: net['name'].lower() == src_net['name'].lower, existing_nets):
+                    if ex_net['tenant_id'] not in tenant_ids_with_src_net:
+                        self.network_client.create_network(network_info)
         return self
 
     @inspect_func
@@ -315,31 +312,23 @@ class ResourceImporter(osCommon.osCommon):
         src_subnets = data['neutron']['subnets']
         existing_nets = self.network_client.list_networks()['networks']
         existing_subnets = self.network_client.list_subnets()['subnets']
-        existing_subnets_names = [subnet['name'] for subnet in existing_subnets]
         for src_subnet in src_subnets:
             tenant_id = osCommon.osCommon.get_tenant_id_by_name(self.keystone_client, src_subnet['tenant_name'])
             tenant_ids_with_src_subnet = \
                 [ex_subnet['tenant_id'] for ex_subnet in existing_subnets if ex_subnet['name'] == src_subnet['name']]
-            for network in existing_nets:
-                if network['name'] == src_subnet['network_name'] and network['tenant_id'] == tenant_id:
-                    network_id = network['id']
-            if src_subnet['name'].lower() not in map(lambda name: name.lower(), existing_subnets_names):
-                self.network_client.create_subnet({'subnet': {'name': src_subnet['name'],
-                                                              'enable_dhcp': src_subnet['enable_dhcp'],
-                                                              'network_id': network_id,
-                                                              'cidr': src_subnet['cidr'],
-                                                              'ip_version': src_subnet['ip_version'],
-                                                              'tenant_id': tenant_id}})
+            network_id = self.__get_existing_resource_id_by_name(existing_nets, src_subnet['network_name'], tenant_id)
+            subnet_info = {'subnet': {'name': src_subnet['name'],
+                                      'enable_dhcp': src_subnet['enable_dhcp'],
+                                      'network_id': network_id,
+                                      'cidr': src_subnet['cidr'],
+                                      'ip_version': src_subnet['ip_version'],
+                                      'tenant_id': tenant_id}}
+            if src_subnet['name'].lower() not in [subnet['name'].lower() for subnet in existing_subnets]:
+                self.network_client.create_subnet(subnet_info)
             else:
-                for existing_subnet in existing_subnets:
-                    if existing_subnet['name'] == src_subnet['name'] \
-                            and existing_subnet['tenant_id'] not in tenant_ids_with_src_subnet:
-                        self.network_client.create_subnet({'subnet': {'name': src_subnet['name'],
-                                                                      'enable_dhcp': src_subnet['enable_dhcp'],
-                                                                      'network_id': network_id,
-                                                                      'cidr': src_subnet['cidr'],
-                                                                      'ip_version': src_subnet['ip_version'],
-                                                                      'tenant_id': tenant_id}})
+                for ex_subnet in filter(lambda subnet: subnet['name'].lower() == src_subnet['name'], existing_subnets):
+                    if ex_subnet['tenant_id'] not in tenant_ids_with_src_subnet:
+                        self.network_client.create_subnet(subnet_info)
         return self
 
     @inspect_func
@@ -348,47 +337,47 @@ class ResourceImporter(osCommon.osCommon):
         data = data if data else self.data
         src_routers = data['neutron']['routers']
         existing_routers = self.network_client.list_routers()['routers']
-        existing_routers_names = [router['name'] for router in existing_routers]
         for src_router in src_routers:
             tenant_id = osCommon.osCommon.get_tenant_id_by_name(self.keystone_client, src_router['tenant_name'])
             tenant_ids_with_src_router = \
                 [ex_router['tenant_id'] for ex_router in existing_routers if ex_router['name'] == src_router['name']]
-            if src_router['name'].lower() not in map(lambda name: name.lower(), existing_routers_names):
-                self.network_client.create_router({'router': {'name': src_router['name'],
-                                                              'tenant_id': tenant_id}})
+            router_info = {'router': {'name': src_router['name'],
+                                      'tenant_id': tenant_id}}
+            if src_router['name'].lower() not in [router['name'].lower() for router in existing_routers]:
+                self.network_client.create_router(router_info)
             else:
-                for existing_router in existing_routers:
-                    if existing_router['name'] == src_router \
-                            and existing_router['tenant_id'] not in tenant_ids_with_src_router:
-                        self.network_client.create_router({'router': {'name': src_router['name'],
-                                                                      'tenant_id': tenant_id}})
+                for ex_router in filter(lambda router: router['name'].lower() == src_router['name'], existing_routers):
+                    if ex_router['tenant_id'] not in tenant_ids_with_src_router:
+                        self.network_client.create_router(router_info)
         return self
 
     @inspect_func
     @log_step(LOG)
     def upload_router_ports(self, data=None, **kwargs):
         data = data if data else self.data
+        src_ports = data['neutron']['ports']
         existing_nets = self.network_client.list_networks()['networks']
         existing_subnets = self.network_client.list_subnets()['subnets']
         existing_routers = self.network_client.list_routers()['routers']
-        src_ports = data['neutron']['ports']
         existing_ports = self.network_client.list_ports()['ports']
         existing_ports_macs = [port['mac_address'] for port in existing_ports]
         for port_src in src_ports:
             tenant_id = osCommon.osCommon.get_tenant_id_by_name(self.keystone_client, port_src['tenant_name'])
-            for network in existing_nets:
-                if network['name'] == port_src['network_name'] and network['tenant_id'] == tenant_id:
-                    network_id = network['id']
-            for subnet in existing_subnets:
-                if port_src['subnet_name'] == subnet['name'] and subnet['tenant_id'] == tenant_id:
-                    subnet_id = subnet['id']
-            for router in existing_routers:
-                if router['name'] == port_src['router_name'] and router['tenant_id'] == tenant_id:
-                    router_id = router['id']
+            network_id = self.__get_existing_resource_id_by_name(existing_nets, port_src['network_name'], tenant_id)
+            subnet_id = self.__get_existing_resource_id_by_name(existing_subnets, port_src['subnet_name'], tenant_id)
+            router_id = self.__get_existing_resource_id_by_name(existing_routers, port_src['router_name'], tenant_id)
             if port_src['mac_address'] not in existing_ports_macs:
                 self.network_client.create_port({'port': {'network_id': network_id,
                                                          'mac_address': port_src['mac_address'],
-                                                         'fixed_ips': [{'subnet_id': subnet_id, 'ip_address': port_src['ip_address']}],
+                                                         'fixed_ips': [{'subnet_id': subnet_id,
+                                                                        'ip_address': port_src['ip_address']}],
                                                          'device_id': router_id,
                                                          'tenant_id': tenant_id}})
         return self
+
+    def __get_existing_resource_id_by_name(self, existing_resources, src_resource_name, tenant_id):
+        for resource in [resource for resource in existing_resources if resource['name'] == src_resource_name]:
+            if resource['tenant_id'] == tenant_id:
+                return resource['id']
+        raise RuntimeError("Can't find suitable resource id with name %s among the existing resources: %s" %
+                           (src_resource_name, existing_resources))
