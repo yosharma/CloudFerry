@@ -131,6 +131,10 @@ class ResourceExporter(osCommon.osCommon):
             source_net['admin_state_up'] = network['admin_state_up']
             source_net['shared'] = network['shared']
             source_net['tenant_name'] = get_tenant_name(network['tenant_id'])
+            source_net['router:external'] = network['router:external']
+            source_net['provider:physical_network'] = network['provider:physical_network']
+            source_net['provider:network_type'] = network['provider:network_type']
+            source_net['provider:segmentation_id'] = network['provider:segmentation_id']
             self.data['neutron']['networks'].append(source_net)
         return self
 
@@ -144,6 +148,7 @@ class ResourceExporter(osCommon.osCommon):
             src_subnet['name'] = subnet['name']
             src_subnet['enable_dhcp'] = subnet['enable_dhcp']
             src_subnet['allocation_pools'] = subnet['allocation_pools']
+            src_subnet['gateway_ip'] = subnet['gateway_ip']
             src_subnet['ip_version'] = subnet['ip_version']
             src_subnet['cidr'] = subnet['cidr']
             src_subnet['network_name'] = self.network_client.show_network(subnet['network_id'])['network']['name']
@@ -162,6 +167,11 @@ class ResourceExporter(osCommon.osCommon):
             src_router['admin_state_up'] = router['admin_state_up']
             src_router['routes'] = router['routes']
             src_router['external_gateway_info'] = router['external_gateway_info']
+            if router['external_gateway_info']:
+                ext_net = \
+                    self.network_client.show_network(router['external_gateway_info']['network_id'])['network']
+                src_router['ext_net_name'] = ext_net['name']
+                src_router['ext_net_tenant_name'] = get_tenant_name(ext_net['tenant_id'])
             src_router['tenant_name'] = get_tenant_name(router['tenant_id'])
             self.data['neutron']['routers'].append(src_router)
         return self

@@ -301,6 +301,12 @@ class ResourceImporter(osCommon.osCommon):
                                         'admin_state_up': src_net['admin_state_up'],
                                         'tenant_id': tenant_id,
                                         'shared': src_net['shared']}}
+            if src_net['router:external']:
+                network_info['network']['router:external'] = src_net['router:external']
+                network_info['network']['provider:physical_network'] = src_net['provider:physical_network']
+                network_info['network']['provider:network_type'] = src_net['provider:network_type']
+                if src_net['provider:network_type'] == 'vlan':
+                    network_info['network']['provider:segmentation_id'] = src_net['provider:segmentation_id']
             if src_net['name'].lower() not in [name['name'].lower() for name in existing_nets]:
                 self.network_client.create_network(network_info)
             else:
@@ -321,6 +327,8 @@ class ResourceImporter(osCommon.osCommon):
                                       'enable_dhcp': src_subnet['enable_dhcp'],
                                       'network_id': network_id,
                                       'cidr': src_subnet['cidr'],
+                                      'allocation_pools': src_subnet['allocation_pools'],
+                                      'gateway_ip': src_subnet['gateway_ip'],
                                       'ip_version': src_subnet['ip_version'],
                                       'tenant_id': tenant_id}}
             if src_subnet['name'].lower() not in [subnet['name'].lower() for subnet in existing_subnets]:
@@ -332,6 +340,7 @@ class ResourceImporter(osCommon.osCommon):
         return self
 
     def __upload_neutron_routers(self, src_routers):
+        existing_nets = self.network_client.list_networks()['networks']
         existing_routers = self.network_client.list_routers()['routers']
         for src_router in src_routers:
             tenant_id = osCommon.osCommon.get_tenant_id_by_name(self.keystone_client, src_router['tenant_name'])
@@ -339,6 +348,14 @@ class ResourceImporter(osCommon.osCommon):
                 [ex_router['tenant_id'] for ex_router in existing_routers if ex_router['name'] == src_router['name']]
             router_info = {'router': {'name': src_router['name'],
                                       'tenant_id': tenant_id}}
+            if src_router['external_gateway_info']:
+                for ex_net in existing_nets:
+                    if ex_net['router:external']:
+                        if src_router['ext_net_name'] == ex_net['name']:
+                            if src_router['ext_net_tenant_name'] == \
+                                    self.keystone_client.tenants.get(ex_net['tenant_id']).name:
+                                src_router['external_gateway_info']['network_id'] = ex_net['id']
+                                router_info['router']['external_gateway_info'] = src_router['external_gateway_info']
             if src_router['name'].lower() not in [router['name'].lower() for router in existing_routers]:
                 self.network_client.create_router(router_info)
             else:
