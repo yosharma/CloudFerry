@@ -117,7 +117,8 @@ class ResourceExporter(osCommon.osCommon):
                 .get_neutron_networks()\
                 .get_neutron_subnets()\
                 .get_neutron_routers()\
-                .get_neutron_router_ports()
+                .get_neutron_router_ports()\
+                .get_neutron_floatings()
         return self
 
     @log_step(LOG)
@@ -192,6 +193,20 @@ class ResourceExporter(osCommon.osCommon):
             router_port['tenant_name'] = get_tenant_name(port['tenant_id'])
             self.data['neutron']['ports'].append(router_port)
         return self
+
+    @log_step(LOG)
+    def get_neutron_floatings(self):
+        floatings = self.network_client.list_floatingips()['floatingips']
+        get_tenant_name = self.__get_tenants_func()
+        self.data['neutron']['floatingips'] = []
+        for float in floatings:
+            src_float = dict()
+            src_float['network_name'] = \
+                self.network_client.show_network(float['floating_network_id'])['network']['name']
+            src_float['tenant_name'] = get_tenant_name(float['tenant_id'])
+            src_float['fixed_ip_address'] = float['fixed_ip_address']
+            src_float['floating_ip_address'] = float['floating_ip_address']
+        self.data['neutron']['floatingips'].append(src_float)
 
     def __get_tenants_func(self):
         tenants = {tenant.id: tenant.name for tenant in self.keystone_client.tenants.list()}

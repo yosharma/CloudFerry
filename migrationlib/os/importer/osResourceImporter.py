@@ -19,6 +19,7 @@ from migrationlib.os import osCommon
 from utils import log_step, get_log, GeneratorPassword, Postman, Templater
 from scheduler.builder_wrapper import inspect_func, supertask
 import sqlalchemy
+from neutronclient.common.exceptions import IpAddressGenerationFailureClient
 
 LOG = get_log(__name__)
 
@@ -289,6 +290,7 @@ class ResourceImporter(osCommon.osCommon):
             self.__upload_neutron_subnets(data['neutron']['subnets'])
             self.__upload_neutron_routers(data['neutron']['routers'])
             self.__upload_router_ports(data['neutron']['ports'])
+            self.__allocating_floatingips(data['neutron']['floatingips'])
         return self
 
     def __upload_neutron_networks(self, src_nets, **kwargs):
@@ -382,6 +384,22 @@ class ResourceImporter(osCommon.osCommon):
                                                                         'ip_address': port_src['ip_address']}],
                                                          'device_id': router_id,
                                                          'tenant_id': tenant_id}})
+        return self
+
+    def __allocating_floatingips(self, src_floats):
+        existing_nets = self.network_client.list_networks()['networks']
+        external_nets_ids = []
+        for float_src in src_floats:
+            tenant_id = osCommon.osCommon.get_tenant_id_by_name(self.keystone_client, float_src['tenant_name'])
+            network_id = self.__get_existing_resource_id_by_name(existing_nets, float_src['network_name'], tenant_id)
+            if network_id not in external_nets_ids:
+                external_nets_ids.append(network_id)
+        for external_net_id in external_nets_ids:
+            try:
+                while True:
+                    self.network_client.create_floatingip({'floatingip': {'floating_network_id': external_net_id}})
+            except IpAddressGenerationFailureClient:
+                LOG.info("| Floating IPs were allocated in network %s" % external_net_id)
         return self
 
     def __get_existing_resource_id_by_name(self, existing_resources, src_resource_name, tenant_id):
