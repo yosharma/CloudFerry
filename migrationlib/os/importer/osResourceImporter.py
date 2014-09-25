@@ -291,6 +291,7 @@ class ResourceImporter(osCommon.osCommon):
             self.__upload_neutron_routers(data['neutron']['routers'])
             self.__upload_router_ports(data['neutron']['ports'])
             self.__allocating_floatingips(data['neutron']['floatingips'])
+            self.__recreate_floatingips(data['neutron']['floatingips'])
         return self
 
     def __upload_neutron_networks(self, src_nets, **kwargs):
@@ -389,9 +390,12 @@ class ResourceImporter(osCommon.osCommon):
     def __allocating_floatingips(self, src_floats):
         existing_nets = self.network_client.list_networks()['networks']
         external_nets_ids = []
+        # getting list of external networks with allocated floating ips
         for float_src in src_floats:
-            tenant_id = osCommon.osCommon.get_tenant_id_by_name(self.keystone_client, float_src['tenant_name'])
-            network_id = self.__get_existing_resource_id_by_name(existing_nets, float_src['network_name'], tenant_id)
+            extnet_tenant_id = osCommon.osCommon.get_tenant_id_by_name(self.keystone_client,
+                                                                       float_src['extnet_tenant_name'])
+            network_id = self.__get_existing_resource_id_by_name(existing_nets,
+                                                                 float_src['network_name'], extnet_tenant_id)
             if network_id not in external_nets_ids:
                 external_nets_ids.append(network_id)
         for external_net_id in external_nets_ids:
@@ -402,9 +406,33 @@ class ResourceImporter(osCommon.osCommon):
                 LOG.info("| Floating IPs were allocated in network %s" % external_net_id)
         return self
 
+    def __recreate_floatingips(self, src_floats):
+
+        """ We recreate floating ips with the same parameters as on src cloud,
+        because we can't determine floating ip address during allocation process. """
+
+        existing_nets = self.network_client.list_networks()['networks']
+        existing_floatingips = self.network_client.list_floatingips()['floatingips']
+        for float_src in src_floats:
+            tenant_id = osCommon.osCommon.get_tenant_id_by_name(self.keystone_client,
+                                                                float_src['tenant_name'])
+            extnet_tenant_id = osCommon.osCommon.get_tenant_id_by_name(self.keystone_client,
+                                                                       float_src['extnet_tenant_name'])
+            extnet_id = self.__get_existing_resource_id_by_name(existing_nets,
+                                                                float_src['network_name'], extnet_tenant_id)
+            for float in existing_floatingips:
+                if float['floating_ip_address'] == float_src['floating_ip_address']:
+                    if float['floating_network_id'] == extnet_id:
+                        if float['tenant_id'] != tenant_id:
+                            self.network_client.delete_floatingip(float['id'])
+                            self.network_client.create_floatingip({'floatingip': {'floating_network_id': extnet_id,
+                                                                                  'tenant_id': tenant_id}})
+        return self
+
     def __get_existing_resource_id_by_name(self, existing_resources, src_resource_name, tenant_id):
         for resource in [resource for resource in existing_resources if resource['name'] == src_resource_name]:
             if resource['tenant_id'] == tenant_id:
                 return resource['id']
-        raise RuntimeError("Can't find suitable resource id with name %s among the existing resources: %s" %
-                           (src_resource_name, existing_resources))
+        raise RuntimeError("Can't find suitable resource id with name %s among "
+                           "the existing resources %s in tenant = %s" %
+                           (src_resource_name, existing_resources, tenant_id))

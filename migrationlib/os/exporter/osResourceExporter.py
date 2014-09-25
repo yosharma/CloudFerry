@@ -201,8 +201,9 @@ class ResourceExporter(osCommon.osCommon):
         self.data['neutron']['floatingips'] = []
         for float in floatings:
             src_float = dict()
-            src_float['network_name'] = \
-                self.network_client.show_network(float['floating_network_id'])['network']['name']
+            extnet = self.network_client.show_network(float['floating_network_id'])['network']
+            src_float['network_name'] = extnet['name']
+            src_float['extnet_tenant_name'] = get_tenant_name(extnet['tenant_id'])
             src_float['tenant_name'] = get_tenant_name(float['tenant_id'])
             src_float['fixed_ip_address'] = float['fixed_ip_address']
             src_float['floating_ip_address'] = float['floating_ip_address']
