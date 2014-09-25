@@ -200,14 +200,14 @@ class ResourceExporter(osCommon.osCommon):
         floatings = self.network_client.list_floatingips()['floatingips']
         get_tenant_name = self.__get_tenants_func()
         self.data['neutron']['floatingips'] = []
-        for float in floatings:
+        for floating in floatings:
             src_float = dict()
-            extnet = self.network_client.show_network(float['floating_network_id'])['network']
+            extnet = self.network_client.show_network(floating['floating_network_id'])['network']
             src_float['network_name'] = extnet['name']
             src_float['extnet_tenant_name'] = get_tenant_name(extnet['tenant_id'])
-            src_float['tenant_name'] = get_tenant_name(float['tenant_id'])
-            src_float['fixed_ip_address'] = float['fixed_ip_address']
-            src_float['floating_ip_address'] = float['floating_ip_address']
+            src_float['tenant_name'] = get_tenant_name(floating['tenant_id'])
+            src_float['fixed_ip_address'] = floating['fixed_ip_address']
+            src_float['floating_ip_address'] = floating['floating_ip_address']
         self.data['neutron']['floatingips'].append(src_float)
 
     def __get_tenants_func(self):

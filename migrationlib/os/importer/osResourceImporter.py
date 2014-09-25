@@ -422,11 +422,11 @@ class ResourceImporter(osCommon.osCommon):
                                                                        float_src['extnet_tenant_name'])
             extnet_id = self.__get_existing_resource_id_by_name(existing_nets,
                                                                 float_src['network_name'], extnet_tenant_id)
-            for float in existing_floatingips:
-                if float['floating_ip_address'] == float_src['floating_ip_address']:
-                    if float['floating_network_id'] == extnet_id:
-                        if float['tenant_id'] != tenant_id:
-                            self.network_client.delete_floatingip(float['id'])
+            for floating in existing_floatingips:
+                if floating['floating_ip_address'] == float_src['floating_ip_address']:
+                    if floating['floating_network_id'] == extnet_id:
+                        if floating['tenant_id'] != tenant_id:
+                            self.network_client.delete_floatingip(floating['id'])
                             self.network_client.create_floatingip({'floatingip': {'floating_network_id': extnet_id,
                                                                                   'tenant_id': tenant_id}})
         return self
@@ -434,9 +434,9 @@ class ResourceImporter(osCommon.osCommon):
     def __delete_redundant_floatingips(self, src_floats):
         existing_floatingips = self.network_client.list_floatingips()['floatingips']
         src_floatingips = [src_float['floating_ip_address'] for src_float in src_floats]
-        for float in existing_floatingips:
-            if float['floating_ip_address'] not in src_floatingips:
-                self.network_client.delete_floatingip(float['id'])
+        for floatingip in existing_floatingips:
+            if floatingip['floating_ip_address'] not in src_floatingips:
+                self.network_client.delete_floatingip(floatingip['id'])
         return self
 
     def __get_existing_resource_id_by_name(self, existing_resources, src_resource_name, tenant_id):
