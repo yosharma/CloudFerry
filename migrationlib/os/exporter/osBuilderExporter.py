@@ -184,8 +184,13 @@ class osBuilderExporter:
                     'ip': network[1][1],
                     'mac': func_mac_address(network[1][1])
                 })
+                self.__remove_floatingip_from_instance(instance.id, network[1][1])
         self.data['floatings'] = floatings
         return self
+
+    @log_step(LOG)
+    def __remove_floatingip_from_instance(self, instance_id, floating_ip):
+        self.nova_client.servers.remove_floating_ip(instance_id, floating_ip)
 
     @inspect_func
     @log_step(LOG)
