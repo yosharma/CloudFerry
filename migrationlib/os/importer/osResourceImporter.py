@@ -292,6 +292,7 @@ class ResourceImporter(osCommon.osCommon):
             self.__upload_router_ports(data['neutron']['ports'])
             self.__allocating_floatingips(data['neutron']['floatingips'])
             self.__recreate_floatingips(data['neutron']['floatingips'])
+            self.__delete_redundant_floatingips(data['neutron']['floatingips'])
         return self
 
     def __upload_neutron_networks(self, src_nets, **kwargs):
@@ -428,6 +429,14 @@ class ResourceImporter(osCommon.osCommon):
                             self.network_client.delete_floatingip(float['id'])
                             self.network_client.create_floatingip({'floatingip': {'floating_network_id': extnet_id,
                                                                                   'tenant_id': tenant_id}})
+        return self
+
+    def __delete_redundant_floatingips(self, src_floats):
+        existing_floatingips = self.network_client.list_floatingips()['floatingips']
+        src_floatingips = [src_float['floating_ip_address'] for src_float in src_floats]
+        for float in existing_floatingips:
+            if float['floating_ip_address'] not in src_floatingips:
+                self.network_client.delete_floatingip(float['id'])
         return self
 
     def __get_existing_resource_id_by_name(self, existing_resources, src_resource_name, tenant_id):
