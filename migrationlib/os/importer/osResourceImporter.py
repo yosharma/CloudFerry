@@ -384,6 +384,7 @@ class ResourceImporter(osCommon.osCommon):
                                                          'fixed_ips': [{'subnet_id': subnet_id,
                                                                         'ip_address': port_src['ip_address']}],
                                                          'device_id': router_id,
+                                                         'device_owner': port_src['device_owner'],
                                                          'tenant_id': tenant_id}})
         return self
 

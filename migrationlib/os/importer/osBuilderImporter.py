@@ -682,6 +682,21 @@ class osBuilderImporter:
             LOG.debug("        done")
         return self
 
+    @inspect_func
+    @log_step(LOG)
+    def assigning_floating(self, data=None, instance=None, **kwargs):
+        data = data if data else self.data
+        instance = instance if instance else self.instance
+        src_floats = data['floatings']
+        if src_floats:
+            for src_float in src_floats:
+                for network in instance.networks.items():
+                    if src_float['name'] == network[0]:
+                        self.nova_client.servers.add_floating_ip(instance.id, src_float['ip'],
+                                                                 network[1][0])
+        return self
+
+
     @log_step(LOG)
     def __patch_option_bootable_of_volume(self, volume_id, bootable):
         cmd = 'use cinder;update volumes set volumes.bootable=%s where volumes.id="%s"' % (int(bootable), volume_id)
@@ -825,7 +840,6 @@ class osBuilderImporter:
             if i['tenant_id'] == tenant_id:
                 if ipaddr.IPNetwork(i['cidr']).Contains(instance_addr):
                     return self.network_client.list_networks(id=i['network_id'])['networks'][0]
-
 
     def __wait_for_status(self, getter, id, status):
         while getter.get(id).status != status:

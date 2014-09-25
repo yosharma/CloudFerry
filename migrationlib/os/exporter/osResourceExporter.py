@@ -191,6 +191,7 @@ class ResourceExporter(osCommon.osCommon):
             router_port['ip_address'] = port['fixed_ips'][0]['ip_address']
             router_port['router_name'] = self.network_client.show_router(port['device_id'])['router']['name']
             router_port['tenant_name'] = get_tenant_name(port['tenant_id'])
+            router_port['device_owner'] = port['device_owner']
             self.data['neutron']['ports'].append(router_port)
         return self
 

@@ -168,8 +168,23 @@ class osBuilderExporter:
                 'ip': network[1][0],
                 'mac': func_mac_address(network[1][0])
             })
-
         self.data['networks'] = networks
+        return self
+
+    @inspect_func
+    @log_step(LOG)
+    def get_floating(self, instance=None, **kwargs):
+        instance = instance if instance else self.instance
+        floatings = []
+        func_mac_address = self.__get_func_mac_address(instance)
+        for network in self.instance.networks.items():
+            if len(network[1]) > 1:
+                floatings.append({
+                    'name': network[0],
+                    'ip': network[1][1],
+                    'mac': func_mac_address(network[1][1])
+                })
+        self.data['floatings'] = floatings
         return self
 
     @inspect_func

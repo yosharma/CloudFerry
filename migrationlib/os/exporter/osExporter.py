@@ -72,5 +72,6 @@ class Exporter(osCommon.osCommon):
             .get_config_drive()\
             .get_disk_config()\
             .get_networks()\
+            .get_floating()\
             .get_disk()\
             .get_instance_name()
