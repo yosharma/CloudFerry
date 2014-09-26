@@ -380,7 +380,7 @@ class osBuilderImporter:
                     (self.config['user'],
                      self.config['password'],
                      self.config['tenant'],
-                     self.config['host'],
+                     self.config['apihost'],
                      baseimage_id,
                      dest_path))
 
@@ -425,7 +425,7 @@ class osBuilderImporter:
                           (self.config['user'],
                            self.config['password'],
                            self.config['tenant'],
-                           self.config['host'],
+                           self.config['apihost'],
                            name,
                            image_format,
                            path_to_image))

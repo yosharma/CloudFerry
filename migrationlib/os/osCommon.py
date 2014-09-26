@@ -45,7 +45,7 @@ class osCommon(object):
         return novaClient.Client(params["user"],
                                  params["password"],
                                  params["tenant"],
-                                 "http://" + params["host"] + ":35357/v2.0/")
+                                 "http://" + params["apihost"] + ":35357/v2.0/")
 
     @staticmethod
     def get_cinder_client(params):
@@ -55,7 +55,7 @@ class osCommon(object):
         return cinderClient.Client(params["user"],
                                    params["password"],
                                    params["tenant"],
-                                   "http://" + params["host"] + ":35357/v2.0/")
+                                   "http://" + params["apihost"] + ":35357/v2.0/")
 
     @staticmethod
     def detect_network_client(keystone):
@@ -75,12 +75,12 @@ class osCommon(object):
             return network_client.Client(username=params["user"],
                                          password=params["password"],
                                          tenant_name=params["tenant"],
-                                         auth_url="http://" + params["host"] + ":35357/v2.0/")
+                                         auth_url="http://" + params["apihost"] + ":35357/v2.0/")
         else:
             return novaClient.Client(params["user"],
                                      params["password"],
                                      params["tenant"],
-                                     "http://" + params["host"] + ":35357/v2.0/")
+                                     "http://" + params["apihost"] + ":35357/v2.0/")
 
     def network_service(self):
         return 'nova' if type(self.nova_client) == type(self.network_client) \
@@ -94,9 +94,9 @@ class osCommon(object):
         keystoneClientForToken = keystoneClient.Client(username=params["user"],
                                                        password=params["password"],
                                                        tenant_name=params["tenant"],
-                                                       auth_url="http://" + params["host"] + ":35357/v2.0/")
+                                                       auth_url="http://" + params["apihost"] + ":35357/v2.0/")
         return keystoneClient.Client(token=keystoneClientForToken.auth_ref["token"]["id"],
-                                     endpoint="http://" + params["host"] + ":35357/v2.0/")
+                                     endpoint="http://" + params["apihost"] + ":35357/v2.0/")
 
     @staticmethod
     def get_glance_client(keystone_client):
@@ -144,7 +144,7 @@ class osCommon(object):
         """ Compose keystone database connection url for SQLAlchemy """
 
         return '{}://{}:{}@{}/keystone'.format(params['identity']['connection'], params['user'], params['password'],
-                                               params['host'])
+                                               params['apihost'])
 
     @staticmethod
     def get_tenant_id_by_name(keystone_client, name):
