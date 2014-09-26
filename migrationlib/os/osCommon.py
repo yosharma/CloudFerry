@@ -17,6 +17,7 @@ from novaclient.v1_1 import client as novaClient
 from cinderclient.v1 import client as cinderClient
 from glanceclient.v1 import client as glanceClient
 from keystoneclient.v2_0 import client as keystoneClient
+from urlparse import urlparse
 
 NOVA_SERVICE = "nova"
 
@@ -104,7 +105,8 @@ class osCommon(object):
         """ Getting glance client """
 
         endpoint_glance = osCommon.get_endpoint_by_name_service(keystone_client, 'glance')
-        return glanceClient.Client(endpoint_glance, token=keystone_client.auth_token_from_user)
+        endpoint_result = '{uri.scheme}://{uri.netloc}/'.format(uri=urlparse(endpoint_glance))
+        return glanceClient.Client(endpoint_result, token=keystone_client.auth_token_from_user)
 
     @staticmethod
     def get_id_service(keystone_client, name_service):
