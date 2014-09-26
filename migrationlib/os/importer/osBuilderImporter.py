@@ -22,6 +22,7 @@ from scheduler.builder_wrapper import inspect_func, supertask
 from fabric.api import run, settings, env
 from migrationlib.os.osCommon import osCommon
 import ipaddr
+import sys
 
 
 
@@ -760,8 +761,9 @@ class osBuilderImporter:
         try:
             flavor = self.nova_client.flavors.find(name=flavor_name)
         except Exception as e:
-            LOG.error("Exp %s" % e)
+            LOG.error("Exception: %s" % e)
             LOG.error("NotFoundFlavor %s" % flavor_name)
+            sys.exit(1)
         return flavor
 
     @log_step(LOG)
