@@ -43,6 +43,7 @@ QCOW2 = "qcow2"
 YES = "yes"
 NAME_LOG_FILE = 'migrate.log'
 PATH_TO_SNAPSHOTS = 'snapshots'
+RES_CONF_DIR = "resources_configs"
 
 
 def get_snapshots_list_repository(path=PATH_TO_SNAPSHOTS):
@@ -60,6 +61,15 @@ def get_snapshots_list_repository(path=PATH_TO_SNAPSHOTS):
         'source': source,
         'dest': dest
     }
+
+
+def check_config_file(name_config, resource):
+    path_to_conf_file = os.path.dirname(name_config) + "/" + RES_CONF_DIR +\
+                        "/" + resource + ".yaml"
+    if os.path.isfile(path_to_conf_file):
+        return path_to_conf_file
+    else:
+        return None
 
 
 def dump_to_file(path, snapshot):
