@@ -312,12 +312,9 @@ class ResourceImporter(osCommon.osCommon):
                 network_info['network']['provider:network_type'] = src_net['provider:network_type']
                 if src_net['provider:network_type'] == 'vlan':
                     network_info['network']['provider:segmentation_id'] = src_net['provider:segmentation_id']
-            if src_net['name'].lower() not in [name['name'].lower() for name in existing_nets]:
+            if (src_net['name'].lower() not in [name['name'].lower() for name in existing_nets]) \
+                    or (tenant_id not in tenant_ids_with_src_net):
                 self.network_client.create_network(network_info)
-            else:
-                for ex_net in filter(lambda net: net['name'].lower() == src_net['name'].lower, existing_nets):
-                    if ex_net['tenant_id'] not in tenant_ids_with_src_net:
-                        self.network_client.create_network(network_info)
         return self
 
     def __upload_neutron_subnets(self, src_subnets):
@@ -336,12 +333,9 @@ class ResourceImporter(osCommon.osCommon):
                                       'gateway_ip': src_subnet['gateway_ip'],
                                       'ip_version': src_subnet['ip_version'],
                                       'tenant_id': tenant_id}}
-            if src_subnet['name'].lower() not in [subnet['name'].lower() for subnet in existing_subnets]:
+            if (src_subnet['name'].lower() not in [subnet['name'].lower() for subnet in existing_subnets]) \
+                    or (tenant_id not in tenant_ids_with_src_subnet):
                 self.network_client.create_subnet(subnet_info)
-            else:
-                for ex_subnet in filter(lambda subnet: subnet['name'].lower() == src_subnet['name'], existing_subnets):
-                    if ex_subnet['tenant_id'] not in tenant_ids_with_src_subnet:
-                        self.network_client.create_subnet(subnet_info)
         return self
 
     def __upload_neutron_routers(self, src_routers):
@@ -361,12 +355,9 @@ class ResourceImporter(osCommon.osCommon):
                                     self.keystone_client.tenants.get(ex_net['tenant_id']).name:
                                 src_router['external_gateway_info']['network_id'] = ex_net['id']
                                 router_info['router']['external_gateway_info'] = src_router['external_gateway_info']
-            if src_router['name'].lower() not in [router['name'].lower() for router in existing_routers]:
+            if (src_router['name'].lower() not in [router['name'].lower() for router in existing_routers]) \
+                    or (tenant_id not in tenant_ids_with_src_router):
                 self.network_client.create_router(router_info)
-            else:
-                for ex_router in filter(lambda router: router['name'].lower() == src_router['name'], existing_routers):
-                    if ex_router['tenant_id'] not in tenant_ids_with_src_router:
-                        self.network_client.create_router(router_info)
         return self
 
     def __upload_router_ports(self, src_ports):
