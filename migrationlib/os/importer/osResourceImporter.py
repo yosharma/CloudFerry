@@ -20,6 +20,7 @@ from utils import log_step, get_log, GeneratorPassword, Postman, Templater
 from scheduler.builder_wrapper import inspect_func, supertask
 import sqlalchemy
 from neutronclient.common.exceptions import IpAddressGenerationFailureClient
+import time
 
 LOG = get_log(__name__)
 
@@ -295,8 +296,7 @@ class ResourceImporter(osCommon.osCommon):
         if data['network_service_info']['service'] == 'neutron':
             self.__upload_neutron_networks(data['neutron']['networks'])
             self.__upload_neutron_subnets(data['neutron']['subnets'])
-            self.__upload_neutron_routers(data['neutron']['routers'])
-            self.__upload_router_ports(data['neutron']['ports'])
+            self.__upload_neutron_routers(data['neutron']['routers'], data['neutron']['ports'])
             self.__allocating_floatingips(data['neutron']['floatingips'])
             self.__recreate_floatingips(data['neutron']['floatingips'])
             self.__delete_redundant_floatingips(data['neutron']['floatingips'])
@@ -356,9 +356,10 @@ class ResourceImporter(osCommon.osCommon):
                 self.network_client.create_subnet(subnet_info)
         return self
 
-    def __upload_neutron_routers(self, src_routers):
+    def __upload_neutron_routers(self, src_routers, src_router_ports):
         existing_nets = self.network_client.list_networks()['networks']
         existing_routers = self.network_client.list_routers()['routers']
+        existing_subnets = self.network_client.list_subnets()['subnets']
         for src_router in src_routers:
             tenant_id = osCommon.osCommon.get_tenant_id_by_name(self.keystone_client, src_router['tenant_name'])
             tenant_ids_with_src_router = \
@@ -375,29 +376,13 @@ class ResourceImporter(osCommon.osCommon):
                                 router_info['router']['external_gateway_info'] = src_router['external_gateway_info']
             if (src_router['name'].lower() not in [router['name'].lower() for router in existing_routers]) \
                     or (tenant_id not in tenant_ids_with_src_router):
-                self.network_client.create_router(router_info)
-        return self
-
-    def __upload_router_ports(self, src_ports):
-        existing_nets = self.network_client.list_networks()['networks']
-        existing_subnets = self.network_client.list_subnets()['subnets']
-        existing_routers = self.network_client.list_routers()['routers']
-        existing_ports = self.network_client.list_ports()['ports']
-        existing_ports_macs = [port['mac_address'] for port in existing_ports]
-        for port_src in src_ports:
-            tenant_id = osCommon.osCommon.get_tenant_id_by_name(self.keystone_client, port_src['tenant_name'])
-            network_id = self.__get_existing_resource_id_by_name(existing_nets, port_src['network_name'], tenant_id)
-            subnet_id = self.__get_existing_resource_id_by_name(existing_subnets, port_src['subnet_name'], tenant_id)
-            router_id = self.__get_existing_resource_id_by_name(existing_routers, port_src['router_name'], tenant_id)
-            if port_src['mac_address'] not in existing_ports_macs:
-                self.network_client.create_port({'port': {'network_id': network_id,
-                                                         'mac_address': port_src['mac_address'],
-                                                         'fixed_ips': [{'subnet_id': subnet_id,
-                                                                        'ip_address': port_src['ip_address']}],
-                                                         'device_id': router_id,
-                                                         'admin_state_up': port_src['admin_state_up'],
-                                                         'device_owner': port_src['device_owner'],
-                                                         'tenant_id': tenant_id}})
+                router = self.network_client.create_router(router_info)['router']
+                for port in filter(lambda rport: rport['tenant_name'] == src_router['tenant_name'], src_router_ports):
+                    if port['router_name'] == router['name']:
+                        subnet_id = self.__get_existing_resource_id_by_name(existing_subnets, port['subnet_name'],
+                                                                            tenant_id)
+                        self.network_client.add_interface_router(router['id'],
+                                                                 {"subnet_id": subnet_id})
         return self
 
     def __allocating_floatingips(self, src_floats):
