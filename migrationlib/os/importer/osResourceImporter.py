@@ -286,6 +286,12 @@ class ResourceImporter(osCommon.osCommon):
     @log_step(LOG)
     def upload_network_resources(self, data=None, **kwargs):
         data = data if data else self.data
+        if self.net_conf:
+            self.__network_resources_mappings(data['neutron']['networks'])
+            self.__network_resources_mappings(data['neutron']['subnets'])
+            self.__network_resources_mappings(data['neutron']['routers'])
+            self.__network_resources_mappings(data['neutron']['ports'])
+            self.__network_resources_mappings(data['neutron']['floatingips'])
         if data['network_service_info']['service'] == 'neutron':
             self.__upload_neutron_networks(data['neutron']['networks'])
             self.__upload_neutron_subnets(data['neutron']['subnets'])
@@ -295,6 +301,18 @@ class ResourceImporter(osCommon.osCommon):
             self.__recreate_floatingips(data['neutron']['floatingips'])
             self.__delete_redundant_floatingips(data['neutron']['floatingips'])
         return self
+
+    def __network_resources_mappings(self, network_resource_info):
+        tenant_map = self.net_conf['mappings']['tenants']
+        if 'admin' in tenant_map:
+            del tenant_map['admin']
+        for resource in network_resource_info:
+            if 'tenant_name' in resource:
+                if resource['tenant_name'] in tenant_map:
+                    resource['tenant_name'] = tenant_map[resource['tenant_name']]
+            if 'ext_net_tenant_name' in resource:
+                if resource['ext_net_tenant_name'] in tenant_map:
+                    resource['ext_net_tenant_name'] = tenant_map[resource['ext_net_tenant_name']]
 
     def __upload_neutron_networks(self, src_nets, **kwargs):
         existing_nets = self.network_client.list_networks()['networks']
@@ -377,6 +395,7 @@ class ResourceImporter(osCommon.osCommon):
                                                          'fixed_ips': [{'subnet_id': subnet_id,
                                                                         'ip_address': port_src['ip_address']}],
                                                          'device_id': router_id,
+                                                         'admin_state_up': port_src['admin_state_up'],
                                                          'device_owner': port_src['device_owner'],
                                                          'tenant_id': tenant_id}})
         return self
@@ -387,7 +406,7 @@ class ResourceImporter(osCommon.osCommon):
         # getting list of external networks with allocated floating ips
         for float_src in src_floats:
             extnet_tenant_id = osCommon.osCommon.get_tenant_id_by_name(self.keystone_client,
-                                                                       float_src['extnet_tenant_name'])
+                                                                       float_src['ext_net_tenant_name'])
             network_id = self.__get_existing_resource_id_by_name(existing_nets,
                                                                  float_src['network_name'], extnet_tenant_id)
             if network_id not in external_nets_ids:
@@ -411,7 +430,7 @@ class ResourceImporter(osCommon.osCommon):
             tenant_id = osCommon.osCommon.get_tenant_id_by_name(self.keystone_client,
                                                                 float_src['tenant_name'])
             extnet_tenant_id = osCommon.osCommon.get_tenant_id_by_name(self.keystone_client,
-                                                                       float_src['extnet_tenant_name'])
+                                                                       float_src['ext_net_tenant_name'])
             extnet_id = self.__get_existing_resource_id_by_name(existing_nets,
                                                                 float_src['network_name'], extnet_tenant_id)
             for floating in existing_floatingips:

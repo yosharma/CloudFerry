@@ -192,6 +192,7 @@ class ResourceExporter(osCommon.osCommon):
             router_port['router_name'] = self.network_client.show_router(port['device_id'])['router']['name']
             router_port['tenant_name'] = get_tenant_name(port['tenant_id'])
             router_port['device_owner'] = port['device_owner']
+            router_port['admin_state_up'] = port['admin_state_up']
             self.data['neutron']['ports'].append(router_port)
         return self
 
@@ -204,7 +205,7 @@ class ResourceExporter(osCommon.osCommon):
             src_float = dict()
             extnet = self.network_client.show_network(floating['floating_network_id'])['network']
             src_float['network_name'] = extnet['name']
-            src_float['extnet_tenant_name'] = get_tenant_name(extnet['tenant_id'])
+            src_float['ext_net_tenant_name'] = get_tenant_name(extnet['tenant_id'])
             src_float['tenant_name'] = get_tenant_name(floating['tenant_id'])
             src_float['fixed_ip_address'] = floating['fixed_ip_address']
             src_float['floating_ip_address'] = floating['floating_ip_address']
