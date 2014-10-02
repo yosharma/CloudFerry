@@ -138,7 +138,8 @@ class Importer(osCommon.osCommon):
             .stop_instance()\
             .import_delta_file()\
             .import_volumes()\
-            .start_instance()
+            .start_instance()\
+            .assigning_floating()
 
     @log_step(LOG)
     def __upload_ceph_backend_ephemeral(self, builderImporter):
@@ -153,7 +154,8 @@ class Importer(osCommon.osCommon):
             .stop_instance()\
             .import_ephemeral_drive()\
             .start_instance()\
-            .import_volumes()
+            .import_volumes()\
+            .assigning_floating()
 
 
     @log_step(LOG)
@@ -168,7 +170,8 @@ class Importer(osCommon.osCommon):
             .import_delta_file()\
             .import_ephemeral_drive()\
             .import_volumes()\
-            .start_instance()
+            .start_instance()\
+            .assigning_floating()
 
     @log_step(LOG)
     def __upload_boot_volume(self, builderImporter):
@@ -179,6 +182,7 @@ class Importer(osCommon.osCommon):
             .stop_instance()\
             .import_volumes()\
             .start_instance()\
+            .assigning_floating()\
             .delete_image_from_source_and_dest_cloud()
 
     @log_step(LOG)
@@ -191,6 +195,7 @@ class Importer(osCommon.osCommon):
             .import_ephemeral_drive()\
             .import_volumes()\
             .start_instance()\
+            .assigning_floating()\
             .delete_image_from_source_and_dest_cloud()
 
     @log_step(LOG)
@@ -204,14 +209,16 @@ class Importer(osCommon.osCommon):
             .stop_instance()\
             .import_ephemeral_drive()\
             .start_instance()\
-            .import_volumes()
+            .import_volumes()\
+            .assigning_floating()
 
     @log_step(LOG)
     def __upload_ephemeral_on_ceph_without_disk(self, builderImporter):
         return builderImporter\
             .prepare_for_creating_new_instance()\
             .create_instance()\
-            .import_volumes()
+            .import_volumes()\
+            .assigning_floating()
 
     def convert_to_dict(self):
         res = {}

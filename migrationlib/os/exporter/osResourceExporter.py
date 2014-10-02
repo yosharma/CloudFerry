@@ -117,7 +117,8 @@ class ResourceExporter(osCommon.osCommon):
                 .get_neutron_networks()\
                 .get_neutron_subnets()\
                 .get_neutron_routers()\
-                .get_neutron_router_ports()
+                .get_neutron_router_ports()\
+                .get_neutron_floatings()
         return self
 
     @log_step(LOG)
@@ -183,6 +184,8 @@ class ResourceExporter(osCommon.osCommon):
         self.data['neutron']['ports'] = []
         for port in filter(lambda p: p['device_owner'] == 'network:router_interface', ports):
             router_port = dict()
+            # network_name, mac_address, ip_address, device_owner and admin_state_up
+            # are not used. May be these data will be needed in the future
             router_port['network_name'] = self.network_client.show_network(port['network_id'])['network']['name']
             router_port['mac_address'] = port['mac_address']
             router_port['subnet_name'] = \
@@ -190,8 +193,25 @@ class ResourceExporter(osCommon.osCommon):
             router_port['ip_address'] = port['fixed_ips'][0]['ip_address']
             router_port['router_name'] = self.network_client.show_router(port['device_id'])['router']['name']
             router_port['tenant_name'] = get_tenant_name(port['tenant_id'])
+            router_port['device_owner'] = port['device_owner']
+            router_port['admin_state_up'] = port['admin_state_up']
             self.data['neutron']['ports'].append(router_port)
         return self
+
+    @log_step(LOG)
+    def get_neutron_floatings(self):
+        floatings = self.network_client.list_floatingips()['floatingips']
+        get_tenant_name = self.__get_tenants_func()
+        self.data['neutron']['floatingips'] = []
+        for floating in floatings:
+            src_float = dict()
+            extnet = self.network_client.show_network(floating['floating_network_id'])['network']
+            src_float['network_name'] = extnet['name']
+            src_float['ext_net_tenant_name'] = get_tenant_name(extnet['tenant_id'])
+            src_float['tenant_name'] = get_tenant_name(floating['tenant_id'])
+            src_float['fixed_ip_address'] = floating['fixed_ip_address']
+            src_float['floating_ip_address'] = floating['floating_ip_address']
+            self.data['neutron']['floatingips'].append(src_float)
 
     def __get_tenants_func(self):
         tenants = {tenant.id: tenant.name for tenant in self.keystone_client.tenants.list()}

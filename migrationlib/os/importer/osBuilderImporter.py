@@ -22,6 +22,7 @@ from scheduler.builder_wrapper import inspect_func, supertask
 from fabric.api import run, settings, env
 from migrationlib.os.osCommon import osCommon
 import ipaddr
+import sys
 
 
 
@@ -380,7 +381,7 @@ class osBuilderImporter:
                     (self.config['user'],
                      self.config['password'],
                      self.config['tenant'],
-                     self.config['host'],
+                     self.config['apihost'],
                      baseimage_id,
                      dest_path))
 
@@ -425,7 +426,7 @@ class osBuilderImporter:
                           (self.config['user'],
                            self.config['password'],
                            self.config['tenant'],
-                           self.config['host'],
+                           self.config['apihost'],
                            name,
                            image_format,
                            path_to_image))
@@ -682,6 +683,21 @@ class osBuilderImporter:
             LOG.debug("        done")
         return self
 
+    @inspect_func
+    @log_step(LOG)
+    def assigning_floating(self, data=None, instance=None, **kwargs):
+        data = data if data else self.data
+        instance = instance if instance else self.instance
+        src_floats = data['floatings']
+        if src_floats:
+            for src_float in src_floats:
+                for network in instance.networks.items():
+                    if src_float['name'] == network[0]:
+                        self.nova_client.servers.add_floating_ip(instance.id, src_float['ip'],
+                                                                 network[1][0])
+        return self
+
+
     @log_step(LOG)
     def __patch_option_bootable_of_volume(self, volume_id, bootable):
         cmd = 'use cinder;update volumes set volumes.bootable=%s where volumes.id="%s"' % (int(bootable), volume_id)
@@ -745,8 +761,9 @@ class osBuilderImporter:
         try:
             flavor = self.nova_client.flavors.find(name=flavor_name)
         except Exception as e:
-            LOG.error("Exp %s" % e)
+            LOG.error("Exception: %s" % e)
             LOG.error("NotFoundFlavor %s" % flavor_name)
+            sys.exit(1)
         return flavor
 
     @log_step(LOG)
@@ -825,7 +842,6 @@ class osBuilderImporter:
             if i['tenant_id'] == tenant_id:
                 if ipaddr.IPNetwork(i['cidr']).Contains(instance_addr):
                     return self.network_client.list_networks(id=i['network_id'])['networks'][0]
-
 
     def __wait_for_status(self, getter, id, status):
         while getter.get(id).status != status:

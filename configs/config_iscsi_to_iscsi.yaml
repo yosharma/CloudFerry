@@ -1,7 +1,8 @@
 clouds:
     source:
         type: os
-        host: 172.18.172.73
+        host: <host ip>
+        apihost: <api host ip>
         user: admin
         password: admin
         tenant: admin
@@ -20,7 +21,8 @@ clouds:
         ssh_transfer_port: 9999
     destination:
         type: os
-        host: 172.18.172.77
+        host: <host ip>
+        apihost: <api host ip>
         user: admin
         password: admin
         tenant: admin
@@ -43,7 +45,7 @@ clouds:
         import_rules:
             default: {}
             overwrite:
-                key: {name: dest-key-1}
+                key: {name: testpair}
                 networks:
                  - name: "net04"
         keep_ip: no
@@ -54,9 +56,9 @@ clouds:
 mail:
     mail_server: smtp.yandex.ru:25
     username: source-cloud-1@yandex.ru
-    password: need_pass
+    password: migration
     from_addr: source-cloud-1@yandex.ru
 key_filename:
-    name: id_rsa
+    name: privkey
 instances:
  - key_name: qwerty

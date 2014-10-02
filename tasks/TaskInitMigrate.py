@@ -16,7 +16,7 @@ from migrationlib.os.exporter import osExporter, osResourceExporter
 from migrationlib.os.importer import osImporter, osResourceImporter
 from scheduler.Task import Task
 from fabric.api import env
-from utils import get_log
+from utils import get_log, check_config_file
 import yaml
 
 __author__ = 'mirrorcoder'
@@ -41,6 +41,8 @@ class TaskInitMigrate(Task):
     @staticmethod
     def init_migrate(name_config):
         config = yaml.load(open(name_config, 'r'))
+        if check_config_file(name_config, "networks"):
+            config["networks"] = yaml.load(open(check_config_file(name_config, "networks"), 'r'))
         exporter = TaskInitMigrate.get_exporter(config)
         importer = TaskInitMigrate.get_importer(config)
         return config, exporter, importer

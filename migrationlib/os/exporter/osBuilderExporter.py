@@ -146,6 +146,13 @@ class osBuilderExporter:
     @log_step(LOG)
     def get_security_groups(self, instance=None, **kwargs):
         instance = instance if instance else self.instance
+        if not instance.security_groups:
+            sglist = []
+            for sec_group in self.nova_client.servers.list_security_group(instance.id):
+                sgdict = {}
+                sgdict['name'] = sec_group.name
+                sglist.append(sgdict)
+            instance.security_groups = sglist
         self.data['security_groups'] = [security_group['name'] for security_group in instance.security_groups]
         return self
 
@@ -168,9 +175,29 @@ class osBuilderExporter:
                 'ip': network[1][0],
                 'mac': func_mac_address(network[1][0])
             })
-
         self.data['networks'] = networks
         return self
+
+    @inspect_func
+    @log_step(LOG)
+    def get_floating(self, instance=None, **kwargs):
+        instance = instance if instance else self.instance
+        floatings = []
+        func_mac_address = self.__get_func_mac_address(instance)
+        for network in self.instance.networks.items():
+            if len(network[1]) > 1:
+                floatings.append({
+                    'name': network[0],
+                    'ip': network[1][1],
+                    'mac': func_mac_address(network[1][1])
+                })
+                self.__remove_floatingip_from_instance(instance.id, network[1][1])
+        self.data['floatings'] = floatings
+        return self
+
+    @log_step(LOG)
+    def __remove_floatingip_from_instance(self, instance_id, floating_ip):
+        self.nova_client.servers.remove_floating_ip(instance_id, floating_ip)
 
     @inspect_func
     @log_step(LOG)
