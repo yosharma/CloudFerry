@@ -20,6 +20,7 @@ from utils import log_step, get_log, GeneratorPassword, Postman, Templater
 from scheduler.builder_wrapper import inspect_func, supertask
 import sqlalchemy
 from neutronclient.common.exceptions import IpAddressGenerationFailureClient
+import time
 
 LOG = get_log(__name__)
 
@@ -32,6 +33,7 @@ class ResourceImporter(osCommon.osCommon):
 
     def __init__(self, conf, data={}, users_notifications={}):
         self.config = conf['clouds']['destination']
+        self.net_conf = conf['networks'] if "networks" in conf else None
         if 'mail' in conf:
             self.postman = Postman(**conf['mail'])
         else:
@@ -285,15 +287,31 @@ class ResourceImporter(osCommon.osCommon):
     @log_step(LOG)
     def upload_network_resources(self, data=None, **kwargs):
         data = data if data else self.data
+        if self.net_conf:
+            self.__network_resources_mappings(data['neutron']['networks'])
+            self.__network_resources_mappings(data['neutron']['subnets'])
+            self.__network_resources_mappings(data['neutron']['routers'])
+            self.__network_resources_mappings(data['neutron']['ports'])
         if data['network_service_info']['service'] == 'neutron':
             self.__upload_neutron_networks(data['neutron']['networks'])
             self.__upload_neutron_subnets(data['neutron']['subnets'])
-            self.__upload_neutron_routers(data['neutron']['routers'])
-            self.__upload_router_ports(data['neutron']['ports'])
+            self.__upload_neutron_routers(data['neutron']['routers'], data['neutron']['ports'])
             self.__allocating_floatingips(data['neutron']['floatingips'])
             self.__recreate_floatingips(data['neutron']['floatingips'])
             self.__delete_redundant_floatingips(data['neutron']['floatingips'])
         return self
+
+    def __network_resources_mappings(self, network_resource_info):
+        tenant_map = self.net_conf['mappings']['tenants']
+        if 'admin' in tenant_map:
+            del tenant_map['admin']
+        for resource in network_resource_info:
+            if 'tenant_name' in resource:
+                if resource['tenant_name'] in tenant_map:
+                    resource['tenant_name'] = tenant_map[resource['tenant_name']]
+            if 'ext_net_tenant_name' in resource:
+                if resource['ext_net_tenant_name'] in tenant_map:
+                    resource['ext_net_tenant_name'] = tenant_map[resource['ext_net_tenant_name']]
 
     def __upload_neutron_networks(self, src_nets, **kwargs):
         existing_nets = self.network_client.list_networks()['networks']
@@ -311,12 +329,9 @@ class ResourceImporter(osCommon.osCommon):
                 network_info['network']['provider:network_type'] = src_net['provider:network_type']
                 if src_net['provider:network_type'] == 'vlan':
                     network_info['network']['provider:segmentation_id'] = src_net['provider:segmentation_id']
-            if src_net['name'].lower() not in [name['name'].lower() for name in existing_nets]:
+            if (src_net['name'].lower() not in [name['name'].lower() for name in existing_nets]) \
+                    or (tenant_id not in tenant_ids_with_src_net):
                 self.network_client.create_network(network_info)
-            else:
-                for ex_net in filter(lambda net: net['name'].lower() == src_net['name'].lower, existing_nets):
-                    if ex_net['tenant_id'] not in tenant_ids_with_src_net:
-                        self.network_client.create_network(network_info)
         return self
 
     def __upload_neutron_subnets(self, src_subnets):
@@ -335,17 +350,15 @@ class ResourceImporter(osCommon.osCommon):
                                       'gateway_ip': src_subnet['gateway_ip'],
                                       'ip_version': src_subnet['ip_version'],
                                       'tenant_id': tenant_id}}
-            if src_subnet['name'].lower() not in [subnet['name'].lower() for subnet in existing_subnets]:
+            if (src_subnet['name'].lower() not in [subnet['name'].lower() for subnet in existing_subnets]) \
+                    or (tenant_id not in tenant_ids_with_src_subnet):
                 self.network_client.create_subnet(subnet_info)
-            else:
-                for ex_subnet in filter(lambda subnet: subnet['name'].lower() == src_subnet['name'], existing_subnets):
-                    if ex_subnet['tenant_id'] not in tenant_ids_with_src_subnet:
-                        self.network_client.create_subnet(subnet_info)
         return self
 
-    def __upload_neutron_routers(self, src_routers):
+    def __upload_neutron_routers(self, src_routers, src_router_ports):
         existing_nets = self.network_client.list_networks()['networks']
         existing_routers = self.network_client.list_routers()['routers']
+        existing_subnets = self.network_client.list_subnets()['subnets']
         for src_router in src_routers:
             tenant_id = osCommon.osCommon.get_tenant_id_by_name(self.keystone_client, src_router['tenant_name'])
             tenant_ids_with_src_router = \
@@ -360,33 +373,15 @@ class ResourceImporter(osCommon.osCommon):
                                     self.keystone_client.tenants.get(ex_net['tenant_id']).name:
                                 src_router['external_gateway_info']['network_id'] = ex_net['id']
                                 router_info['router']['external_gateway_info'] = src_router['external_gateway_info']
-            if src_router['name'].lower() not in [router['name'].lower() for router in existing_routers]:
-                self.network_client.create_router(router_info)
-            else:
-                for ex_router in filter(lambda router: router['name'].lower() == src_router['name'], existing_routers):
-                    if ex_router['tenant_id'] not in tenant_ids_with_src_router:
-                        self.network_client.create_router(router_info)
-        return self
-
-    def __upload_router_ports(self, src_ports):
-        existing_nets = self.network_client.list_networks()['networks']
-        existing_subnets = self.network_client.list_subnets()['subnets']
-        existing_routers = self.network_client.list_routers()['routers']
-        existing_ports = self.network_client.list_ports()['ports']
-        existing_ports_macs = [port['mac_address'] for port in existing_ports]
-        for port_src in src_ports:
-            tenant_id = osCommon.osCommon.get_tenant_id_by_name(self.keystone_client, port_src['tenant_name'])
-            network_id = self.__get_existing_resource_id_by_name(existing_nets, port_src['network_name'], tenant_id)
-            subnet_id = self.__get_existing_resource_id_by_name(existing_subnets, port_src['subnet_name'], tenant_id)
-            router_id = self.__get_existing_resource_id_by_name(existing_routers, port_src['router_name'], tenant_id)
-            if port_src['mac_address'] not in existing_ports_macs:
-                self.network_client.create_port({'port': {'network_id': network_id,
-                                                         'mac_address': port_src['mac_address'],
-                                                         'fixed_ips': [{'subnet_id': subnet_id,
-                                                                        'ip_address': port_src['ip_address']}],
-                                                         'device_id': router_id,
-                                                         'device_owner': port_src['device_owner'],
-                                                         'tenant_id': tenant_id}})
+            if (src_router['name'].lower() not in [router['name'].lower() for router in existing_routers]) \
+                    or (tenant_id not in tenant_ids_with_src_router):
+                router = self.network_client.create_router(router_info)['router']
+                for port in filter(lambda rport: rport['tenant_name'] == src_router['tenant_name'], src_router_ports):
+                    if port['router_name'] == router['name']:
+                        subnet_id = self.__get_existing_resource_id_by_name(existing_subnets, port['subnet_name'],
+                                                                            tenant_id)
+                        self.network_client.add_interface_router(router['id'],
+                                                                 {"subnet_id": subnet_id})
         return self
 
     def __allocating_floatingips(self, src_floats):
@@ -395,7 +390,7 @@ class ResourceImporter(osCommon.osCommon):
         # getting list of external networks with allocated floating ips
         for float_src in src_floats:
             extnet_tenant_id = osCommon.osCommon.get_tenant_id_by_name(self.keystone_client,
-                                                                       float_src['extnet_tenant_name'])
+                                                                       float_src['ext_net_tenant_name'])
             network_id = self.__get_existing_resource_id_by_name(existing_nets,
                                                                  float_src['network_name'], extnet_tenant_id)
             if network_id not in external_nets_ids:
@@ -419,7 +414,7 @@ class ResourceImporter(osCommon.osCommon):
             tenant_id = osCommon.osCommon.get_tenant_id_by_name(self.keystone_client,
                                                                 float_src['tenant_name'])
             extnet_tenant_id = osCommon.osCommon.get_tenant_id_by_name(self.keystone_client,
-                                                                       float_src['extnet_tenant_name'])
+                                                                       float_src['ext_net_tenant_name'])
             extnet_id = self.__get_existing_resource_id_by_name(existing_nets,
                                                                 float_src['network_name'], extnet_tenant_id)
             for floating in existing_floatingips:
