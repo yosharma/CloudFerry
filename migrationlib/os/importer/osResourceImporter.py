@@ -292,7 +292,6 @@ class ResourceImporter(osCommon.osCommon):
             self.__network_resources_mappings(data['neutron']['subnets'])
             self.__network_resources_mappings(data['neutron']['routers'])
             self.__network_resources_mappings(data['neutron']['ports'])
-            self.__network_resources_mappings(data['neutron']['floatingips'])
         if data['network_service_info']['service'] == 'neutron':
             self.__upload_neutron_networks(data['neutron']['networks'])
             self.__upload_neutron_subnets(data['neutron']['subnets'])

@@ -184,6 +184,8 @@ class ResourceExporter(osCommon.osCommon):
         self.data['neutron']['ports'] = []
         for port in filter(lambda p: p['device_owner'] == 'network:router_interface', ports):
             router_port = dict()
+            # network_name, mac_address, ip_address, device_owner and admin_state_up
+            # are not used. May be these data will be needed in the future
             router_port['network_name'] = self.network_client.show_network(port['network_id'])['network']['name']
             router_port['mac_address'] = port['mac_address']
             router_port['subnet_name'] = \
@@ -209,7 +211,7 @@ class ResourceExporter(osCommon.osCommon):
             src_float['tenant_name'] = get_tenant_name(floating['tenant_id'])
             src_float['fixed_ip_address'] = floating['fixed_ip_address']
             src_float['floating_ip_address'] = floating['floating_ip_address']
-        self.data['neutron']['floatingips'].append(src_float)
+            self.data['neutron']['floatingips'].append(src_float)
 
     def __get_tenants_func(self):
         tenants = {tenant.id: tenant.name for tenant in self.keystone_client.tenants.list()}
