@@ -19,6 +19,8 @@ Package with OpenStack resources export/import utilities.
 from migrationlib.os import osCommon
 from utils import log_step, get_log, render_info, write_info
 import sqlalchemy
+import ipaddr
+
 
 LOG = get_log(__name__)
 ADMIN_TENANT = 'admin'
@@ -119,6 +121,9 @@ class ResourceExporter(osCommon.osCommon):
                 .get_neutron_routers()\
                 .get_neutron_router_ports()\
                 .get_neutron_floatings()
+        elif osCommon.osCommon.network_service(self) == 'nova':
+            self.get_nova_networks()\
+                .get_nova_floatings()
         return self
 
     @log_step(LOG)
@@ -213,6 +218,32 @@ class ResourceExporter(osCommon.osCommon):
             src_float['floating_ip_address'] = floating['floating_ip_address']
             self.data['neutron']['floatingips'].append(src_float)
 
+    @log_step(LOG)
+    def get_nova_floatings(self):
+        tenants = self.data['tenants']
+        self.data['nova']['floatingips'] = []
+        for tenant in tenants:
+            #NOTE(SOM)Essex has no mechanism to respond on all IP's hence this code block
+            try:
+                params = { 'user': self.config['user'],
+                           'password': self.config['password'],
+                           'apihost': self.config['apihost'],
+                           'tenant': tenant.name}
+                nova_temp = self.get_nova_client(params)
+                floatings = nova_temp.floating_ips.list()
+                for floating in floatings:
+                    src_float = dict()
+                    src_float['network_name'] = floating.pool
+                    src_float['ext_net_tenant_name'] = tenant.name
+                    src_float['tenant_name'] = tenant.name
+                    src_float['fixed_ip_address'] = floating.fixed_ip
+                    src_float['floating_ip_address'] = floating.ip
+                    self.data['nova']['floatingips'].append(src_float)
+            except Exception, e:
+                LOG.info("Unknown or not Authorised: %s, %s " % (e, tenant))
+
+
+
     def __get_tenants_func(self):
         tenants = {tenant.id: tenant.name for tenant in self.keystone_client.tenants.list()}
 
@@ -220,6 +251,43 @@ class ResourceExporter(osCommon.osCommon):
             return tenants[tenant_id] if tenant_id in tenants.keys() else ADMIN_TENANT
 
         return f
+
+
+    #NOTE(SOM) working
+    @log_step(LOG)
+    def get_nova_networks(self):
+        networks = self.nova_client.networks.list()
+        get_tenant_name = self.__get_tenants_func()
+        self.data['nova'] = dict(networks=[])
+        self.data['nova']['subnets'] =[]
+        for network in networks:
+            source_net = dict()
+            source_net['name'] = network.label
+            source_net['admin_state_up'] = True
+            source_net['shared'] = False
+            source_net['tenant_name'] = get_tenant_name(network.project_id)
+            source_net['router:external'] = False
+            #  This will need to be set on the destination side
+            #source_net['provider:physical_network'] = network['provider:physical_network']
+            source_net['provider:network_type'] = 'vlan'
+            source_net['provider:segmentation_id'] = network.vlan
+            self.data['nova']['networks'].append(source_net)
+
+            src_subnet = dict()
+            src_subnet['name'] = network.label
+            src_subnet['enable_dhcp'] = True
+            src_subnet['allocation_pools'] = [{"start": network.dhcp_start, "end": ipaddr.IPNetwork(network.cidr).__getitem__(-2)}]
+            src_subnet['ip_version'] = '4'
+            src_subnet['gateway_ip'] = network.gateway
+            src_subnet['cidr'] = network.cidr
+            src_subnet['network_name'] = network.label
+            src_subnet['tenant_name'] = get_tenant_name(network.project_id)
+            self.data['nova']['subnets'].append(src_subnet)
+
+
+        return self
+
+
 
     @log_step(LOG)
     def build(self):
