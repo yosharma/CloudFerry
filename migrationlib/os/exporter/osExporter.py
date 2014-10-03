@@ -22,6 +22,7 @@ LOG = get_log(__name__)
 VOLUMES_VIA_GLANCE = 'volumes_via_glance'
 VOLUMES = 'volumes'
 
+
 class Exporter(osCommon.osCommon):
 
     def __init__(self, config):
@@ -34,6 +35,7 @@ class Exporter(osCommon.osCommon):
 
     @log_step(LOG)
     def find_instances(self, search_opts):
+        search_opts['all_tenants'] = True
         return self.nova_client.servers.list(search_opts=search_opts)
 
     @log_step(LOG)
@@ -42,7 +44,8 @@ class Exporter(osCommon.osCommon):
         """
         The main method for gathering and exporting information from source cloud
         """
-        builder = osBuilderExporter(self.glance_client,
+        builder = osBuilderExporter(self.keystone_client,
+                                    self.glance_client,
                                     self.cinder_client,
                                     self.nova_client,
                                     self.network_client,
@@ -63,6 +66,7 @@ class Exporter(osCommon.osCommon):
         return builder\
             .stop_instance()\
             .get_name()\
+            .get_tenant_name()\
             .get_image()\
             .get_flavor()\
             .get_security_groups()\

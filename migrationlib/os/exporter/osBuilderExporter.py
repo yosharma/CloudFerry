@@ -37,7 +37,8 @@ class osBuilderExporter:
     data -- main dictionary for filling with information from source cloud
     """
 
-    def __init__(self, glance_client, cinder_client, nova_client, network_client, instance, config, data=dict()):
+    def __init__(self, keystone_client, glance_client, cinder_client, nova_client, network_client, instance, config, data=dict()):
+        self.keystone_client = keystone_client
         self.glance_client = glance_client
         self.cinder_client = cinder_client
         self.nova_client = nova_client
@@ -86,6 +87,12 @@ class osBuilderExporter:
         instance = instance if instance else self.instance
         self.data['name'] = getattr(instance, 'name')
         return self
+
+    @inspect_func
+    @log_step(LOG)
+    def get_tenant_name(self, instance=None, **kwargs):
+        instance = instance if instance else self.instance
+        self.data['tenant_name'] = self.keystone_client.tenants.get(getattr(instance, 'tenant_id')).name
 
     @inspect_func
     @log_step(LOG)

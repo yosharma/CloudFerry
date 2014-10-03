@@ -103,6 +103,7 @@ class osBuilderImporter:
                                           **kwargs):
         self\
             .prepare_name(data=data)\
+            .prepare_tenant_name(data=data)\
             .prepare_image(data=data)\
             .prepare_flavor(data=data)\
             .prepare_metadata(data=data)\
@@ -195,7 +196,14 @@ class osBuilderImporter:
         data = data if data else self.data
         networks = data['networks']
         security_groups = self.__ensure_param(data, 'security_groups')
-        self.data_for_instance["nics"] = self.__prepare_networks(networks, security_groups)
+        self.data_for_instance["nics"] = self.__prepare_networks(networks, security_groups, data['tenant_name'])
+        return self
+
+    @inspect_func
+    @log_step(LOG)
+    def prepare_tenant_name(self, data=None, **kwargs):
+        data = data if data else self.data
+        self.data_for_instance['tenant_name'] = data['tenant_name']
         return self
 
     @inspect_func
@@ -230,11 +238,16 @@ class osBuilderImporter:
     @log_step(LOG)
     def create_instance(self, data_for_instance=None, **kwargs):
         data_for_instance = data_for_instance if data_for_instance else self.data_for_instance
+        nova_client = self.nova_client
         LOG.info("  creating new instance")
         LOG.debug("params:")
         for param in data_for_instance:
             LOG.debug("%s = %s" % (param, data_for_instance[param]))
-        self.instance = self.nova_client.servers.create(**data_for_instance)
+        if self.config['tenant'] != data_for_instance['tenant_name']:
+            config = {'apihost': self.config['apihost'], 'user': self.config['user'],
+                      'password': self.config['password'], 'tenant': data_for_instance['tenant_name']}
+            nova_client = osCommon.get_nova_client(config)
+        self.instance = nova_client.servers.create(**data_for_instance)
         LOG.info("  wait for instance activating")
         self.__wait_for_status(self.nova_client.servers, self.instance.id, 'ACTIVE')
         return self
@@ -773,7 +786,7 @@ class osBuilderImporter:
         return key['name']
 
     @log_step(LOG)
-    def __prepare_networks(self, networks_info, security_groups):
+    def __prepare_networks(self, networks_info, security_groups, tenant_name):
         LOG.debug("networks_info %s" % networks_info)
         params = []
         keep_ip = self.config['keep_ip']
@@ -794,9 +807,11 @@ class osBuilderImporter:
             for sg in self.nova_client.security_groups.list():
                 if sg.name in security_groups:
                     sg_ids.append(sg.id)
+            tenant_id = osCommon.get_tenant_id_by_name(self.keystone_client, tenant_name)
             param_create_port = {'network_id': network['id'],
                                  'mac_address': networks_info[i]['mac'],
-                                 'security_groups': sg_ids}
+                                 'security_groups': sg_ids,
+				 'tenant_id': tenant_id}
             if keep_ip:
                 param_create_port['fixed_ips'] = [{"ip_address": networks_info[i]['ip']}]
             port = self.network_client.create_port({'port': param_create_port})['port']
