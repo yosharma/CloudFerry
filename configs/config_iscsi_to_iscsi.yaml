@@ -54,11 +54,11 @@ clouds:
           connection: mysql+mysqlconnector
 
 mail:
-    mail_server: smtp.yandex.ru:25
-    username: source-cloud-1@yandex.ru
-    password: migration
-    from_addr: source-cloud-1@yandex.ru
+    mail_server: <server:port>
+    username: <username>
+    password: <pass>
+    from_addr: <e-mail>
 key_filename:
     name: privkey
 instances:
- - key_name: qwerty
+ - key_name: <key_name>

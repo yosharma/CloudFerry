@@ -61,6 +61,10 @@ class osBuilderImporter:
         self.network_client = network_client
         self.config = config
         self.config_from = config_from
+        self.local_config = {'apihost': self.config['apihost'],
+                             'user': self.config['user'],
+                             'password': self.config['password'],
+                             'tenant': self.config['tenant']}
         self.funcs = []
         self.data = data
         self.data_for_instance = data_for_instance if data_for_instance else dict()
@@ -243,10 +247,9 @@ class osBuilderImporter:
         LOG.debug("params:")
         for param in data_for_instance:
             LOG.debug("%s = %s" % (param, data_for_instance[param]))
-        if self.config['tenant'] != data_for_instance['tenant_name']:
-            config = {'apihost': self.config['apihost'], 'user': self.config['user'],
-                      'password': self.config['password'], 'tenant': data_for_instance['tenant_name']}
-            nova_client = osCommon.get_nova_client(config)
+        if self.local_config['tenant'] != data_for_instance['tenant_name']:
+            self.local_config['tenant'] = data_for_instance['tenant_name']
+            nova_client = osCommon.get_nova_client(self.local_config)
         self.instance = nova_client.servers.create(**data_for_instance)
         LOG.info("  wait for instance activating")
         self.__wait_for_status(self.nova_client.servers, self.instance.id, 'ACTIVE')
@@ -811,7 +814,7 @@ class osBuilderImporter:
             param_create_port = {'network_id': network['id'],
                                  'mac_address': networks_info[i]['mac'],
                                  'security_groups': sg_ids,
-				 'tenant_id': tenant_id}
+                                 'tenant_id': tenant_id}
             if keep_ip:
                 param_create_port['fixed_ips'] = [{"ip_address": networks_info[i]['ip']}]
             port = self.network_client.create_port({'port': param_create_port})['port']
