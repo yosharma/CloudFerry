@@ -26,9 +26,12 @@ __author__ = 'mirrorcoder'
 class SuperTaskMigrateInstances(SuperTask):
 
     def search_instances_by_search_opts(self, config, exporter):
-        for instance_search_opts in config['instances']:
-            for instance in exporter.find_instances(instance_search_opts):
-                yield instance
+        if config['instances']:
+            for instance in exporter.find_instances(config['instances']):
+                    yield instance
+        else:
+            for instance in exporter.find_instances():
+                    yield instance
 
     def run(self, config=None, inst_exporter=None, inst_importer=None, __rollback_status__=None, **kwargs):
         supertasks_migrate = []

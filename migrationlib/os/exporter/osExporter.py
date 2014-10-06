@@ -14,8 +14,6 @@
 
 from migrationlib.os import osCommon
 from osBuilderExporter import osBuilderExporter
-from sys import exit
-
 from utils import log_step, get_log
 
 LOG = get_log(__name__)
@@ -35,12 +33,13 @@ class Exporter(osCommon.osCommon):
         super(Exporter, self).__init__(self.config)
 
     @log_step(LOG)
-    def find_instances(self, search_opts):
+    def find_instances(self, search_opts=None):
+        if not search_opts:
+            search_opts = dict()
         search_opts['all_tenants'] = True
         instances = self.nova_client.servers.list(search_opts=search_opts)
         sorted_instances_by_tenant = sorted(instances, key=lambda vm: vm.tenant_id)
         return sorted_instances_by_tenant
-
 
     @log_step(LOG)
     def export(self, instance):

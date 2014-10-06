@@ -28,7 +28,6 @@ from tasks.TaskInitDirectory import TaskInitDirectory
 from tasks.TaskLoadSnapshotsForAbort import TaskLoadSnapshotsForAbort
 from utils import log_step, get_log, load_json_from_file, get_snapshots_list_repository, PATH_TO_SNAPSHOTS
 import os
-import shutil
 from migrationlib.os.utils.rollback.Rollback import *
 
 
@@ -39,13 +38,14 @@ LOG = get_log(__name__)
 
 
 @task
-def migrate(name_config, name_instance=None, mode=DEFAULT):
+def migrate(name_config, name_instance=None, tenant_id=None, mode=DEFAULT):
     """
         :name_config - name of config yaml-file, example 'config.yaml'
     """
     rollback_status = mode
     namespace = Namespace({'__name_config__': name_config,
                            'name_instance': name_instance,
+                           'tenant_id': tenant_id,
                            '__rollback_status__': rollback_status if not (rollback_status == DEFAULT) else RESTART})
     scheduler = Scheduler(namespace)
     if rollback_status == DEFAULT:
@@ -82,6 +82,7 @@ def clean_dest_cloud(name_config, delete_image=False):
     LOG.info("Init config migrate")
     # _, (_, _), (_, importer) = init_migrate(name_config)
     # importer.clean_cloud(delete_image)
+
 
 @task
 def get_info(name_config):
