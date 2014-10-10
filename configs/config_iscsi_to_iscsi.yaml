@@ -1,8 +1,8 @@
 clouds:
     source:
         type: os
-        host: <host ip>
-        apihost: <api host ip>
+        host: 172.18.172.13
+        apihost: 172.18.172.13
         user: admin
         password: admin
         tenant: admin
@@ -21,8 +21,8 @@ clouds:
         ssh_transfer_port: 9999
     destination:
         type: os
-        host: <host ip>
-        apihost: <api host ip>
+        host: 172.18.172.108
+        apihost: 172.18.172.108
         user: admin
         password: admin
         tenant: admin
@@ -48,17 +48,17 @@ clouds:
                 key: {name: testpair}
                 networks:
                  - name: "net04"
-        keep_ip: no
+        keep_ip: yes
         speed_limit: 10MB
         identity:
           connection: mysql+mysqlconnector
-
 mail:
-    mail_server: smtp.yandex.ru:25
-    username: source-cloud-1@yandex.ru
-    password: migration
-    from_addr: source-cloud-1@yandex.ru
+    mail_server: <server:port>
+    username: <user>
+    password: <pass>
+    from_addr: <e-mail>
 key_filename:
-    name: privkey
+    name: priv_11
 instances:
- - key_name: qwerty
+    key_name: qwerty
+    tenant_id: e06a9c22d8154c64b9c98db92d49ab7d

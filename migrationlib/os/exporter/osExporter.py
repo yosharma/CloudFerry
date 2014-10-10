@@ -14,13 +14,13 @@
 
 from migrationlib.os import osCommon
 from osBuilderExporter import osBuilderExporter
-
 from utils import log_step, get_log
 
 LOG = get_log(__name__)
 
 VOLUMES_VIA_GLANCE = 'volumes_via_glance'
 VOLUMES = 'volumes'
+
 
 class Exporter(osCommon.osCommon):
 
@@ -33,8 +33,13 @@ class Exporter(osCommon.osCommon):
         super(Exporter, self).__init__(self.config)
 
     @log_step(LOG)
-    def find_instances(self, search_opts):
-        return self.nova_client.servers.list(search_opts=search_opts)
+    def find_instances(self, search_opts=None):
+        if not search_opts:
+            search_opts = dict()
+        search_opts['all_tenants'] = True
+        instances = self.nova_client.servers.list(search_opts=search_opts)
+        sorted_instances_by_tenant = sorted(instances, key=lambda vm: vm.tenant_id)
+        return sorted_instances_by_tenant
 
     @log_step(LOG)
     def export(self, instance):
@@ -42,7 +47,8 @@ class Exporter(osCommon.osCommon):
         """
         The main method for gathering and exporting information from source cloud
         """
-        builder = osBuilderExporter(self.glance_client,
+        builder = osBuilderExporter(self.keystone_client,
+                                    self.glance_client,
                                     self.cinder_client,
                                     self.nova_client,
                                     self.network_client,
@@ -63,6 +69,7 @@ class Exporter(osCommon.osCommon):
         return builder\
             .stop_instance()\
             .get_name()\
+            .get_tenant_name()\
             .get_image()\
             .get_flavor()\
             .get_security_groups()\

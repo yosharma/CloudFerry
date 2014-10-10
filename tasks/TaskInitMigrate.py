@@ -47,12 +47,15 @@ class TaskInitMigrate(Task):
         importer = TaskInitMigrate.get_importer(config)
         return config, exporter, importer
 
-    def run(self, __name_config__="", name_instance="", **kwargs):
+    def run(self, __name_config__="", name_instance="", tenant_id="", **kwargs):
         LOG.info("Init migrationlib config")
         config, (res_exporter, inst_exporter), (res_importer, inst_importer) = \
             TaskInitMigrate.init_migrate(__name_config__)
         if name_instance:
-            config['instances'] = [{'name': name_instance}]
+            config['instances'] = {'name': name_instance}
+            # config['instances']['name'] = name_instance
+            if tenant_id:
+                config['instances']['tenant_id'] = tenant_id
         env.key_filename = config['key_filename']['name']
         return {
             'config': config,

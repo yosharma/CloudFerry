@@ -48,7 +48,12 @@ clouds:
         speed_limit: 10MB
         identity:
           connection: mysql+mysqlconnector
+mail:
+    mail_server: <server:port>
+    username: <user>
+    password: <pass>
+    from_addr: <e-mail>
 key_filename:
     name: privkey
 instances:
- - key_name: control
+    key_name: control
