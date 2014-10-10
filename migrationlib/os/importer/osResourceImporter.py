@@ -299,6 +299,13 @@ class ResourceImporter(osCommon.osCommon):
             self.__allocating_floatingips(data['neutron']['floatingips'])
             self.__recreate_floatingips(data['neutron']['floatingips'])
             self.__delete_redundant_floatingips(data['neutron']['floatingips'])
+        elif data['network_service_info']['service'] == 'nova':
+            #NOTE(SOM) may want to add something here to check for rules in the config.
+            self.__upload_neutron_networks(data['nova']['networks'])
+            self.__upload_neutron_subnets(data['nova']['subnets'])
+            self.__allocating_floatingips(data['nova']['floatingips'])
+            self.__recreate_floatingips(data['nova']['floatingips'])
+            self.__delete_redundant_floatingips(data['nova']['floatingips'])
         return self
 
     def __network_resources_mappings(self, network_resource_info):
@@ -389,10 +396,17 @@ class ResourceImporter(osCommon.osCommon):
         external_nets_ids = []
         # getting list of external networks with allocated floating ips
         for float_src in src_floats:
-            extnet_tenant_id = osCommon.osCommon.get_tenant_id_by_name(self.keystone_client,
-                                                                       float_src['ext_net_tenant_name'])
-            network_id = self.__get_existing_resource_id_by_name(existing_nets,
-                                                                 float_src['network_name'], extnet_tenant_id)
+            public = self.config['import_rules']['overwrite']['public'] if "public" in self.config['import_rules']['overwrite'] else False
+            if public:
+                extnet_tenant_id = osCommon.osCommon.get_tenant_id_by_name(self.keystone_client,
+                                                                           public[float_src['network_name']]['tenant_id'])
+                network_id = self.__get_existing_resource_id_by_name(existing_nets,
+                                                                public[float_src['network_name']]['dname'], extnet_tenant_id)
+            else:
+                extnet_tenant_id = osCommon.osCommon.get_tenant_id_by_name(self.keystone_client,
+                                                                           float_src['ext_net_tenant_name'])
+                network_id = self.__get_existing_resource_id_by_name(existing_nets,
+                                                                  float_src['network_name'], extnet_tenant_id)
             if network_id not in external_nets_ids:
                 external_nets_ids.append(network_id)
         for external_net_id in external_nets_ids:
@@ -413,10 +427,17 @@ class ResourceImporter(osCommon.osCommon):
         for float_src in src_floats:
             tenant_id = osCommon.osCommon.get_tenant_id_by_name(self.keystone_client,
                                                                 float_src['tenant_name'])
-            extnet_tenant_id = osCommon.osCommon.get_tenant_id_by_name(self.keystone_client,
-                                                                       float_src['ext_net_tenant_name'])
-            extnet_id = self.__get_existing_resource_id_by_name(existing_nets,
-                                                                float_src['network_name'], extnet_tenant_id)
+            public = self.config['import_rules']['overwrite']['public'] if "public" in self.config['import_rules']['overwrite'] else False
+            if public:
+                extnet_tenant_id = osCommon.osCommon.get_tenant_id_by_name(self.keystone_client,
+                                                                           public[float_src['network_name']]['tenant_id'])
+                extnet_id = self.__get_existing_resource_id_by_name(existing_nets,
+                                                                    public[float_src['network_name']]['dname'], extnet_tenant_id)
+            else:
+                extnet_tenant_id = osCommon.osCommon.get_tenant_id_by_name(self.keystone_client,
+                                                                        float_src['ext_net_tenant_name'])
+                extnet_id = self.__get_existing_resource_id_by_name(existing_nets,
+                                                                   float_src['network_name'], extnet_tenant_id)
             for floating in existing_floatingips:
                 if floating['floating_ip_address'] == float_src['floating_ip_address']:
                     if floating['floating_network_id'] == extnet_id:
