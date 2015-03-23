@@ -83,8 +83,7 @@ class OS2OSFerry(cloud_ferry.CloudFerry):
                      'image': glance_image.GlanceImage,
                      'storage': cinder_storage.CinderStorage,
                      'network': neutron.NeutronNetwork,
-                     'compute': nova_compute.NovaCompute,
-                     'objstorage': swift_storage.SwiftStorage}
+                     'compute': nova_compute.NovaCompute}
         self.src_cloud = cloud.Cloud(resources, cloud.SRC, config)
         self.dst_cloud = cloud.Cloud(resources, cloud.DST, config)
         self.init = {

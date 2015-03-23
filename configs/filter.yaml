@@ -1,4 +1,3 @@
-#instances:
-#    id:
-#        - <server_id1>
-#        - <server_id2>
+instances:
+    id:
+        - a1236bf1-1fa5-40cf-b07a-033442b0d51e

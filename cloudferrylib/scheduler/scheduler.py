@@ -86,7 +86,8 @@ class BaseScheduler(object):
             self.process_chain(self.migration, "MIGRATION")
             # if we had an error during process migration - rollback
             if self.status_error == ERROR:
-                self.process_chain(self.rollback, "ROLLBACK")
+                pass
+                # self.process_chain(self.rollback, "ROLLBACK")
 
     def task_run(self, task):
         task(namespace=self.namespace)

@@ -133,9 +133,10 @@ class CinderStorage(storage.Storage):
         return self.cinder_client.volumes.detach(volume_id)
 
     def finish(self, vol):
-        self.__patch_option_bootable_of_volume(
-            vol[utl.VOLUME_BODY]['id'],
-            vol[utl.VOLUME_BODY]['bootable'])
+        # self.__patch_option_bootable_of_volume(
+        #     vol[utl.VOLUME_BODY]['id'],
+        #     vol[utl.VOLUME_BODY]['bootable'])
+        pass
 
     def upload_volume_to_image(self, volume_id, force, image_name,
                                container_format, disk_format):
