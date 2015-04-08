@@ -15,6 +15,7 @@
 
 from fabric.api import run
 from fabric.api import settings
+from fabric.api import env
 
 import cmd_cfg
 from utils import forward_agent
@@ -26,9 +27,9 @@ class SshUtil(object):
         self.host = host if host else cloud.host
         self.config_migrate = config_migrate
 
-    def execute(self, cmd, internal_host=None, host_exec=None):
+    def execute(self, cmd, internal_host=None, host_exec=None, user=None):
         host = host_exec if host_exec else self.host
-        with settings(host_string=host):
+        with settings(host_string=host, user=user if user else env.user):
             if internal_host:
                 return self.execute_on_inthost(str(cmd), internal_host)
             else:

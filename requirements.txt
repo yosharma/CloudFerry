@@ -14,3 +14,4 @@ python-novaclient==2.15.0
 python-swiftclient==2.3.1
 pyyaml
 sqlalchemy
+pyquery
