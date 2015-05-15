@@ -21,7 +21,11 @@ src_opts = [
     cfg.StrOpt('tenant', default='-',
                help='tenant for access to API'),
     cfg.StrOpt('temp', default='-',
-               help='temporary directory on controller')
+               help='temporary directory on controller'),
+    cfg.StrOpt('apikey', default='',
+               help='Api Key for access API if need'),
+    cfg.StrOpt('secretkey', default='',
+               help='Secret Key for access API if need')
 
 ]
 
@@ -48,6 +52,10 @@ dst_opts = [
                help='tenant for access to API'),
     cfg.StrOpt('temp', default='-',
                help='temporary directory on controller'),
+    cfg.StrOpt('apikey', default='',
+               help='Api Key for access API if need'),
+    cfg.StrOpt('secretkey', default='',
+               help='Secret Key for access API if need')
 
 ]
 

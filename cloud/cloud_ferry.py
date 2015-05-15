@@ -27,6 +27,14 @@ class CloudFerry(object):
             # implement smth like auto discovering, if it will be needed
             return __import__('cloud').os2os.OS2OSFerry(config)
 
+        if (config.src.type == 'cs') and (config.dst.type == 'os'):
+            # Maybe it is better to provide new param in config such as
+            # 'migration_type'? Or as Alex mentioned, make smth like paste.ini?
+            # And specify it there for first time? It can be directly names of
+            # classes or any human readable mapping. And later some day
+            # implement smth like auto discovering, if it will be needed
+            return __import__('cloud').cs2os.CS2OSFerry(config)
+
         return super(CloudFerry, cls).__new__(cls)
 
     def __init__(self, config):
