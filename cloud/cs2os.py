@@ -19,6 +19,11 @@ from cloudferrylib.scheduler import scheduler
 from cloudferrylib.scheduler import namespace
 from cloudferrylib.scheduler import cursor
 from cloudferrylib.cs.compute import compute
+from cloudferrylib.os.compute import nova_compute
+from cloudferrylib.os.identity import keystone
+from cloudferrylib.os.image import glance_image
+from cloudferrylib.os.storage import cinder_storage
+from cloudferrylib.os.network import neutron
 from cloudferrylib.cs.actions import transport_instance
 from cloudferrylib.utils import utils as utl
 
@@ -27,9 +32,15 @@ class CS2OSFerry(cloud_ferry.CloudFerry):
 
     def __init__(self, config):
         super(CS2OSFerry, self). __init__(config)
-        resources = {'compute': compute.Compute}
+        resources_os = {'identity': keystone.KeystoneIdentity,
+                        'image': glance_image.GlanceImage,
+                        'storage': cinder_storage.CinderStorage,
+                        'network': neutron.NeutronNetwork,
+                        'compute': nova_compute.NovaCompute}
+        resources = {'compute': compute.Compute,
+                     'identity': compute.Compute}
         self.src_cloud = cloud.Cloud(resources, cloud.SRC, config)
-        self.dst_cloud = cloud.Cloud(resources, cloud.DST, config)
+        self.dst_cloud = cloud.Cloud(resources_os, cloud.DST, config)
         self.init = {
             'src_cloud': self.src_cloud,
             'dst_cloud': self.dst_cloud,
@@ -43,12 +54,12 @@ class CS2OSFerry(cloud_ferry.CloudFerry):
                 utl.INSTANCES_TYPE: {}
             }
         })
-        if not scenario:
-            process_migration = {"migration": cursor.Cursor(self.process_migrate())}
-        else:
-            scenario.init_tasks(self.init)
-            scenario.load_scenario()
-            process_migration = {k: cursor.Cursor(v) for k, v in scenario.get_net().items()}
+        # if not scenario:
+        process_migration = {"migration": cursor.Cursor(self.process_migrate())}
+        # else:
+        #     scenario.init_tasks(self.init)
+        #     scenario.load_scenario()
+        #     process_migration = {k: cursor.Cursor(v) for k, v in scenario.get_net().items()}
         scheduler_migr = scheduler.Scheduler(namespace=namespace_scheduler, **process_migration)
         scheduler_migr.start()
 

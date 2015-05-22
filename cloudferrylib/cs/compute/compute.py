@@ -34,6 +34,7 @@ INTERFACES = "interfaces"
 
 
 class Compute(compute.Compute):
+    PATH_STORAGE = "/mnt/usr/export/primary"
     """The main class for working with Openstack Nova Compute Service. """
 
     def __init__(self, config, cloud):
@@ -51,19 +52,70 @@ class Compute(compute.Compute):
         params = self.config if not params else params
 
         return client.ClientCloudStack(params.cloud.auth_url,
-                                       params.cloud.username,
+                                       params.cloud.user,
                                        params.cloud.password,
                                        params.cloud.secretkey,
                                        params.cloud.apikey,)
 
+    def stop_vm(self, inst_id):
+        self.client.stop_vm(id=inst_id)
+
+    def get_status(self, inst_id):
+        status = self.client.get_instances(inst_id=inst_id)[0]['state']
+        return status
+
     def __read_info_instances(self, **kwargs):
-        instances = self.client.get_instances(**kwargs)
+        instances = self.client.get_instances(**getattr(kwargs, 'search_opts', {}))
         instances_new = {}
         for inst in instances:
             instances_new[inst['id']] = self.convert_instance(inst,
                                                               self.config,
                                                               self.cloud)
+            flavor = self.__get_flavor(inst['serviceofferingid'],
+                                       inst['id'])
+            instances_new[inst['id']]['instance']['flavors'] = [flavor]
+            instances_new[inst['id']]['diff'] = self.__get_diff(inst['id'])
+            root = self.client.get_volumes(virtualmachineid=inst['id'], type="ROOT")[0]
+            instances_new[inst['id']]['instance']['rootDisk'] = [root]
+            instances_new[inst['id']]['instance']['is_template'] = \
+                self.__is_load_from_template(inst['templateid'])
+            instances_new[inst['id']]['instance']['disks'] = self.__get_disks(inst['id'])
         return instances_new
+
+    def __get_disks(self, inst_id):
+        type_disk = 'DATADISK'
+        volumes = self.client.get_volumes(virtualmachineid=inst_id, type=type_disk)
+        return volumes
+
+    def __get_diff(self, inst_id):
+        root = self.client.get_volumes(virtualmachineid=inst_id, type="ROOT")[0]
+        diff = {
+            'host_src': self.config.cloud.host,
+            'host_dst': None,
+            'path_src': '%s/%s' % (self.PATH_STORAGE, root['id']),
+            'path_dst': None
+        }
+        return diff
+
+    def __get_flavor(self, serviceofferingid, inst_id):
+        serviceoffering = self.client.get_service_offering(id=serviceofferingid)
+        root = self.client.get_volumes(virtualmachineid=inst_id, type="ROOT")[0]
+        flavor = {
+            'name': serviceoffering[0]['name'],
+            'ram': serviceoffering[0]['memory'],
+            'vcpus': serviceoffering[0]['cpunumber'],
+            'disk': root['size']/(1024*1024*1024),
+            'ephemeral': 0,
+            'swap': 0,
+            'rxtx_factor': 1.0,
+            'is_public': True,
+            # 'tenants': ['admin']
+        }
+        return flavor
+
+    def __is_load_from_template(self, templateid):
+        templates = [temp['id'] for temp in self.client.get_templates(templatefilter="all")]
+        return templateid in templates
 
     def read_info(self, target='instances', **kwargs):
         info = {}
@@ -76,21 +128,29 @@ class Compute(compute.Compute):
         inst_raw = {
             'instance': copy.deepcopy(instance),
             'diff': {},
-            'meta': {},
+            'volumes': [],
+            'meta': {}
         }
-        inst = {}
-        # inst = {'name': instance["name"],
-        #         'instance_name': instance["instancename"],
-        #         'id': instance['id'],
-        #         'tenant_id': instance["projectid"],
-        #         'tenant_name': instance["project"],
-        #         'status': instance["state"],
-        #         'flavor_id': None,
-        #         'serviceofferingid': instance["serviceofferingid"],
-        #         'diskofferingid': instance["diskofferingid"],
-        #         'diskofferingname': instance["diskofferingname"],
-        #         'serviceofferingname': instance["serviceofferingname"],
-        # }
+        inst = {
+            'rootDisk': [],
+            'disks': {},
+            'backing_file': instance['serviceofferingid'],
+            'name': instance['name'],
+            'network': instance['nic'],
+            'interfaces': [{
+                'ip': None,
+                'mac': nic['macaddress'],
+                'name': 'net04',
+                'floatingip': nic["ipaddress"]
+            } for nic in instance['nic']],
+            'security_groups': ['default'],
+            'tenant_name': 'admin',
+            'nics': [],
+            'key_name': 'qwerty',
+            'flavor': None,
+            'image': None,
+            'boot_mode': 'image',
+            'flavors': []}
         inst_raw['instance'].update(inst)
         return inst_raw
 
@@ -142,8 +202,7 @@ class Compute(compute.Compute):
     def wait_for_status(self, id_obj, status, limit_retry=90):
         #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         count = 0
-        getter = self.client.servers
-        while getter.get(id_obj).status.lower() != status.lower():
+        while self.get_status(id_obj).lower() != status.lower():
             time.sleep(2)
             count += 1
             if count > limit_retry:

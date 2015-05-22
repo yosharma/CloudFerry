@@ -548,7 +548,7 @@ class NovaCompute(compute.Compute):
         else:
             return True
 
-    def wait_for_status(self, id_obj, status, limit_retry=90):
+    def wait_for_status(self, id_obj, status, limit_retry=900):
         count = 0
         getter = self.nova_client.servers
         while getter.get(id_obj).status.lower() != status.lower():
