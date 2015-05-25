@@ -17,6 +17,16 @@ import copy
 from cloudferrylib.base.action import action
 from cloudferrylib.utils import utils as utl
 
+# input: info = {
+#   'instances': {
+#           'id1': {
+#                       'meta':  {
+#                                   'volumes': [{'volume': {'id': 'id1_vol', 'device': 'dev1'}}]
+#                                  }
+#                        'instance': {'id': 'id1'}
+#           }
+#}
+
 
 class AttachVolumesCompute(action.Action):
 

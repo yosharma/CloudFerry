@@ -35,7 +35,6 @@ INTERFACES = "interfaces"
 
 class Compute(compute.Compute):
     PATH_STORAGE = "/mnt/usr/export/primary"
-    """The main class for working with Openstack Nova Compute Service. """
 
     def __init__(self, config, cloud):
         super(Compute, self).__init__()
@@ -129,7 +128,7 @@ class Compute(compute.Compute):
             'instance': copy.deepcopy(instance),
             'diff': {},
             'volumes': [],
-            'meta': {}
+            'meta': {'volume': []}
         }
         inst = {
             'rootDisk': [],
