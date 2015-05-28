@@ -74,6 +74,8 @@ class Compute(compute.Compute):
                                        inst['id'])
             instances_new[inst['id']]['instance']['flavors'] = [flavor]
             instances_new[inst['id']]['diff'] = self.__get_diff(inst['id'])
+            instances_new[inst['id']]['ephemeral'] = \
+                instances_new[inst['id']]['diff']
             root = self.client.get_volumes(virtualmachineid=inst['id'], type="ROOT")[0]
             instances_new[inst['id']]['instance']['rootDisk'] = [root]
             instances_new[inst['id']]['instance']['is_template'] = \
@@ -127,6 +129,7 @@ class Compute(compute.Compute):
         inst_raw = {
             'instance': copy.deepcopy(instance),
             'diff': {},
+            'ephemeral': {},
             'volumes': [],
             'meta': {'volume': []}
         }
@@ -146,9 +149,9 @@ class Compute(compute.Compute):
             'tenant_name': 'admin',
             'nics': [],
             'key_name': 'qwerty',
-            'flavor': None,
+            'flavor_id': None,
             'image': None,
-            'boot_mode': 'image',
+            'boot_mode': 'boot_image',
             'flavors': []}
         inst_raw['instance'].update(inst)
         return inst_raw

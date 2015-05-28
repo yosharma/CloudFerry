@@ -31,9 +31,9 @@ class CreateFlavor(action.Action):
             dest_flavors = {flavor.name: flavor.id for flavor in
                             compute_resource_dst.get_flavor_list(is_public=None)}
             if data['flavors'][0]['name'] not in dest_flavors:
-                data['flavor'] = compute_resource_dst.create_flavor(**data['flavors'][0]).id
+                data['flavor_id'] = compute_resource_dst.create_flavor(**data['flavors'][0]).id
             else:
-                data['flavor'] = dest_flavors[data['flavors'][0]['name']]
+                data['flavor_id'] = dest_flavors[data['flavors'][0]['name']]
 
         return {
             'info': info

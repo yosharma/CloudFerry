@@ -29,6 +29,7 @@ from cloudferrylib.cs.actions import create_flavor
 from cloudferrylib.cs.actions import merge_root
 from cloudferrylib.os.actions import attach_used_volumes_via_compute
 from cloudferrylib.cs.actions import create_instance
+from cloudferrylib.os.actions import transport_instance
 from cloudferrylib.cs.actions import prepare_data_volumes
 from cloudferrylib.cs.actions import upload_file_to_glance
 from cloudferrylib.os.actions import get_filter
@@ -128,11 +129,12 @@ class CS2OSFerry(cloud_ferry.CloudFerry):
         net = prepare_networks.PrepareNetworks(self.init, 'dst_cloud')
         act_upload_file_to_glance = upload_file_to_glance.UploadFileToGlance(self.init, 'dst_cloud')
         act_create_instance = create_instance.CreateInstance(self.init, 'dst_cloud')
+        act_trans_instance = transport_instance.TransportInstance(self.init, 'dst_cloud')
         act_attach_volumes = attach_used_volumes_via_compute.AttachVolumesCompute(self.init, 'dst_cloud')
         return act_stop_vms >> create_flavor_act >> \
-               act_merge_root >> act_root_transport_data >> act_upload_file_to_glance >>\
+               act_upload_file_to_glance >>\
                act_prepare_data_volumes >> act_vol_transport_data >>\
-               act_trans_volumes >> net >> act_create_instance >> act_attach_volumes
+               act_trans_volumes >> net >> act_trans_instance >> act_attach_volumes
 
     def init_iteration_instance(self, data, name_backup, name_iter):
         init_iteration_instance = copy_var.CopyVar(self.init, data, name_backup, True) >>\
