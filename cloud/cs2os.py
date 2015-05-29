@@ -128,11 +128,10 @@ class CS2OSFerry(cloud_ferry.CloudFerry):
         create_flavor_act = create_flavor.CreateFlavor(self.init, 'src_cloud')
         net = prepare_networks.PrepareNetworks(self.init, 'dst_cloud')
         act_upload_file_to_glance = upload_file_to_glance.UploadFileToGlance(self.init, 'dst_cloud')
-        act_create_instance = create_instance.CreateInstance(self.init, 'dst_cloud')
         act_trans_instance = transport_instance.TransportInstance(self.init, 'dst_cloud')
         act_attach_volumes = attach_used_volumes_via_compute.AttachVolumesCompute(self.init, 'dst_cloud')
         return act_stop_vms >> create_flavor_act >> \
-               act_upload_file_to_glance >>\
+               act_merge_root >> act_root_transport_data >> act_upload_file_to_glance >>\
                act_prepare_data_volumes >> act_vol_transport_data >>\
                act_trans_volumes >> net >> act_trans_instance >> act_attach_volumes
 

@@ -48,7 +48,7 @@ class UploadFileToGlance(action.Action):
                            'qcow2',
                            "%s/%s" % (cfg_cloud_dst.temp, 'diff')))
                 image_id = out.split("|")[2].replace(' ', '')
-                data['image'] = image_id
+                data['image_id'] = image_id
 
         return {
             'info': info

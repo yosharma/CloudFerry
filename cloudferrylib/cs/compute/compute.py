@@ -150,7 +150,7 @@ class Compute(compute.Compute):
             'nics': [],
             'key_name': 'qwerty',
             'flavor_id': None,
-            'image': None,
+            'image_id': None,
             'boot_mode': 'boot_image',
             'flavors': []}
         inst_raw['instance'].update(inst)
