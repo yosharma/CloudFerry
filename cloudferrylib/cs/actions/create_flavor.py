@@ -23,7 +23,7 @@ class CreateFlavor(action.Action):
 
     def run(self, info=None, **kwargs):
         # search_opts = kwargs.get('search_opts', {})
-        compute_resource_dst = self.dst_cloud.resources[utl.COMPUTE_RESOURCE]
+        compute_resource_dst = self.cloud.resources[utl.COMPUTE_RESOURCE]
         #Create LOOP
         for (id_inst, inst) in info['instances'].iteritems():
             data = inst['instance']

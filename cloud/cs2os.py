@@ -28,7 +28,6 @@ from cloudferrylib.cs.actions import transport_volumes
 from cloudferrylib.cs.actions import create_flavor
 from cloudferrylib.cs.actions import merge_root
 from cloudferrylib.os.actions import attach_used_volumes_via_compute
-from cloudferrylib.cs.actions import create_instance
 from cloudferrylib.os.actions import transport_instance
 from cloudferrylib.cs.actions import prepare_data_volumes
 from cloudferrylib.cs.actions import upload_file_to_glance
@@ -44,6 +43,7 @@ from cloudferrylib.utils.drivers import ssh_ceph_to_file
 from cloudferrylib.utils.drivers import ssh_file_to_file
 from cloudferrylib.utils.drivers import ssh_file_to_ceph
 from cloudferrylib.os.actions import task_transfer
+from cloudferrylib.scheduler import scenario
 
 
 class CS2OSFerry(cloud_ferry.CloudFerry):
@@ -69,19 +69,21 @@ class CS2OSFerry(cloud_ferry.CloudFerry):
             'SSHFileToCeph': ssh_file_to_ceph.SSHFileToCeph
         }
 
-    def migrate(self, scenario=None):
+    def migrate(self, scenario_obj=None):
         namespace_scheduler = namespace.Namespace({
             '__init_task__': self.init,
             'info_result': {
                 utl.INSTANCES_TYPE: {}
             }
         })
-        # if not scenario:
-        process_migration = {"migration": cursor.Cursor(self.process_migrate())}
-        # else:
-        #     scenario.init_tasks(self.init)
-        #     scenario.load_scenario()
-        #     process_migration = {k: cursor.Cursor(v) for k, v in scenario.get_net().items()}
+        if not scenario_obj:
+            process_migration = {"migration": cursor.Cursor(self.process_migrate())}
+        else:
+            scenario_obj = scenario.Scenario(path_tasks='scenario/tasks_cs2os.yaml',
+                                             path_scenario='scenario/migrate_cs2os.yaml')
+            scenario_obj.init_tasks(self.init)
+            scenario_obj.load_scenario()
+            process_migration = {k: cursor.Cursor(v) for k, v in scenario_obj.get_net().items()}
         scheduler_migr = scheduler.Scheduler(namespace=namespace_scheduler, **process_migration)
         scheduler_migr.start()
 
@@ -125,7 +127,7 @@ class CS2OSFerry(cloud_ferry.CloudFerry):
                                                             resource_root_name=utl.VOLUME_BODY)
         act_prepare_data_volumes = prepare_data_volumes.PrepareDataVolumes(self.init, 'src_cloud')
         act_merge_root = merge_root.MergeRoot(self.init, 'src_cloud')
-        create_flavor_act = create_flavor.CreateFlavor(self.init, 'src_cloud')
+        create_flavor_act = create_flavor.CreateFlavor(self.init, 'dst_cloud')
         net = prepare_networks.PrepareNetworks(self.init, 'dst_cloud')
         act_upload_file_to_glance = upload_file_to_glance.UploadFileToGlance(self.init, 'dst_cloud')
         act_trans_instance = transport_instance.TransportInstance(self.init, 'dst_cloud')

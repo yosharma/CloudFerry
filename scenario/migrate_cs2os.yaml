@@ -1,0 +1,33 @@
+namespace:
+  info_result:
+      instances: {}
+
+preparation:
+  - create_snapshot: True
+
+rollback:
+  - restore_from_snapshot: True
+
+process:
+  - transport_instances_and_dependency_resources:
+      - act_get_filter: True
+      - act_get_info_inst: True
+      - init_iteration_instance:
+          - init_iteration_instance_copy_var: True
+          - init_iteration_instance_ref: True
+      - get_next_instance: True
+      - trans_one_inst:
+          - act_stop_vms: True
+          - create_flavor_act: True
+          - act_merge_root: True
+          - act_root_transport_data: True
+          - act_upload_file_to_glance: True
+          - act_prepare_data_volumes: True
+          - act_vol_transport_data: True
+          - act_trans_volumes: True
+          - act_net_prep: True
+          - act_trans_instance: True
+          - act_attach_volumes: True
+      - save_result_migrate_instances: True
+      - is_instances: ['get_next_instance']
+      - rename_info_iter: True

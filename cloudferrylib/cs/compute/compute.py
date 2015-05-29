@@ -209,6 +209,6 @@ class Compute(compute.Compute):
             count += 1
             if count > limit_retry:
                 raise timeout_exception.TimeoutException(
-                    getter.get(id_obj).status.lower(), status, "Timeout exp")
+                    self.get_status(id_obj).lower(), status, "Timeout exp")
         #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         pass
