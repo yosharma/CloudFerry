@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and#
 # limitations under the License.
 
-from fabric.api import local
+from fabric.api import local, env
 import json
+
 
 class ClientCloudStack(object):
     MODE_DISPLAY = 'json'
@@ -129,9 +130,57 @@ class ClientCloudStack(object):
         result = self.build_api_cmd(cmd, opts)
         return self.processing_result(result, select_field)
 
+    def get_listisos(self, **kwargs):
+        cmd = "listIsos"
+        select_field = 'iso'
+        opts = {}
+        opts.update(kwargs if kwargs else {})
+        result = self.build_api_cmd(cmd, opts)
+        return self.processing_result(result, select_field)
+
     def stop_vm(self, **kwargs):
         cmd = "stopVirtualMachine"
         select_field = ''
+        opts = {}
+        opts.update(kwargs if kwargs else {})
+        result = self.build_api_cmd(cmd, opts)
+        return self.processing_result(result, select_field)
+
+    def extract_iso(self, **kwargs):
+        cmd = "extractIso"
+        select_field = ''
+        opts = {}
+        opts.update(kwargs if kwargs else {})
+        result = self.build_api_cmd(cmd, opts)
+        return self.processing_result(result, select_field)
+
+    def extract_template(self, **kwargs):
+        cmd = "extractTemplate"
+        select_field = ''
+        opts = {}
+        opts.update(kwargs if kwargs else {})
+        result = self.build_api_cmd(cmd, opts)
+        return self.processing_result(result, select_field)
+
+    def get_list_image_stores(self, **kwargs):
+        cmd = "listImageStores"
+        select_field = ''
+        opts = {}
+        opts.update(kwargs if kwargs else {})
+        result = self.build_api_cmd(cmd, opts)
+        return self.processing_result(result, select_field)
+
+    def get_list_secondary_staging_stores(self, **kwargs):
+        cmd = "listSecondaryStagingStores"
+        select_field = ''
+        opts = {}
+        opts.update(kwargs if kwargs else {})
+        result = self.build_api_cmd(cmd, opts)
+        return self.processing_result(result, select_field)
+
+    def get_list_template(self, **kwargs):
+        cmd = "listTemplates"
+        select_field = 'template'
         opts = {}
         opts.update(kwargs if kwargs else {})
         result = self.build_api_cmd(cmd, opts)
