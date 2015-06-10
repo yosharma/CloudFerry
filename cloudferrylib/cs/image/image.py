@@ -58,10 +58,12 @@ class Image(image.Image):
                                        params.cloud.apikey,)
 
     def get_image_list(self):
-        return self.client.get_listisos()
+        res = self.client.get_listisos()
+        return res if res else []
 
-    def get_template_list(self, templatefilter="all"):
-        return self.client.get_list_template(templatefilter=templatefilter)
+    def get_template_list(self, templatefilter="self"):
+        res = self.client.get_list_template(templatefilter=templatefilter)
+        return res if res else []
 
     def delete_image(self, image_id):
         return self.client.deleteiso(id=image_id)
@@ -88,6 +90,16 @@ class Image(image.Image):
 
     def get_image_status(self, image_id):
         return self.get_image_by_id(image_id).status
+
+    def get_image_storages(self, id_storage=None):
+        if id_storage is None:
+            return self.client.get_list_image_stores()
+        return self.client.get_list_image_stores(id=id_storage)
+
+    def get_secondary_storages(self, id_storage=None):
+        if id_storage is None:
+            return self.client.get_list_secondary_stores()
+        return self.client.get_list_secondary_stores(id=id_storage)
 
     def what_id(self, image_id):
         with settings(ok_ret_codes=[0, 1]):
@@ -155,7 +167,7 @@ class Image(image.Image):
             'name': img['name'],
             'checksum': img['checksum'],
             'container_format': 'bare',
-            'disk_format': 'qcow2' if not 'format' in img else img['format'],
+            'disk_format': 'qcow2' if not 'format' in img else img['format'].lower(),
             'is_public': img['ispublic'],
             'protected': False,
             'resource': resource,
@@ -176,7 +188,8 @@ class Image(image.Image):
                                  format [(image, meta)]
         :rtype: Dictionary with all necessary images info
         """
-
+        print self.get_image_storages()
+        print self.get_secondary_storages()
         info = {'images': {}}
         if kwargs.get('image_id'):
             glance_image = self.get_image_by_id(kwargs['image_id'])+self.get_template_by_id(kwargs['image_id'])

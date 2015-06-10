@@ -40,4 +40,4 @@ loggers:
     handlers: [console, info, error]
 root:
   level: INFO
-  handlers: []
+  handlers: [console]

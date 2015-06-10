@@ -19,6 +19,7 @@ from cloudferrylib.scheduler import scheduler
 from cloudferrylib.scheduler import namespace
 from cloudferrylib.scheduler import cursor
 from cloudferrylib.cs.compute import compute
+from cloudferrylib.cs.image import image
 from cloudferrylib.os.compute import nova_compute
 from cloudferrylib.os.identity import keystone
 from cloudferrylib.cs.identity import identity
@@ -33,9 +34,11 @@ from cloudferrylib.os.actions import transport_instance
 from cloudferrylib.cs.actions import prepare_data_volumes
 from cloudferrylib.cs.actions import upload_file_to_glance
 from cloudferrylib.os.actions import get_filter
+from cloudferrylib.os.actions import copy_g2g
 from cloudferrylib.os.actions import get_info_instances
 from cloudferrylib.os.actions import prepare_networks
 from cloudferrylib.os.actions import stop_vm
+from cloudferrylib.os.actions import get_info_images
 from cloudferrylib.utils import utils as utl
 from cloudferrylib.base.action import copy_var, rename_info, merge, is_end_iter, get_info_iter
 from cloudferrylib.base.action import create_reference
@@ -45,6 +48,7 @@ from cloudferrylib.utils.drivers import ssh_file_to_file
 from cloudferrylib.utils.drivers import ssh_file_to_ceph
 from cloudferrylib.os.actions import task_transfer
 from cloudferrylib.scheduler import scenario
+from cloudferrylib.os.actions import networks_transporter
 
 
 class CS2OSFerry(cloud_ferry.CloudFerry):
@@ -57,7 +61,8 @@ class CS2OSFerry(cloud_ferry.CloudFerry):
                         'network': neutron.NeutronNetwork,
                         'compute': nova_compute.NovaCompute}
         resources = {'compute': compute.Compute,
-                     'identity': identity.Identity}
+                     'identity': identity.Identity,
+                     'image': image.Image}
         self.src_cloud = cloud.Cloud(resources, cloud.SRC, config)
         self.dst_cloud = cloud.Cloud(resources_os, cloud.DST, config)
         self.init = {
@@ -78,7 +83,7 @@ class CS2OSFerry(cloud_ferry.CloudFerry):
             }
         })
         if not scenario_obj:
-            process_migration = {"migration": cursor.Cursor(self.process_migrate())}
+            process_migration = {"migration": cursor.Cursor(self.get_images())}
         else:
             scenario_obj = scenario.Scenario(path_tasks='scenario/tasks_cs2os.yaml',
                                              path_scenario='scenario/migrate_cs2os.yaml')
@@ -87,6 +92,11 @@ class CS2OSFerry(cloud_ferry.CloudFerry):
             process_migration = {k: cursor.Cursor(v) for k, v in scenario_obj.get_net().items()}
         scheduler_migr = scheduler.Scheduler(namespace=namespace_scheduler, **process_migration)
         scheduler_migr.start()
+
+    def get_images(self):
+        get_images = get_info_images.GetInfoImages(self.init, 'src_cloud')
+        act_deploy_images = copy_g2g.CopyFromGlanceToGlance(self.init)
+        return get_images >> act_deploy_images
 
     def process_migrate(self):
         name_data = 'info'

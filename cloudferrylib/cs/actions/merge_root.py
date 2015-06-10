@@ -50,7 +50,7 @@ class MergeRoot(action.Action):
                                         data['templateid'],
                                         base)
                 cmd_cp_diff = cmd_cp % ('/mnt/usr/export/primary',
-                                        data['templateid'],
+                                        data['rootDisk'][0]['id'],
                                         diff)
                 qemu_img_rebase = cmd_rebase % temp
                 qemu_img_commit = cmd_commit % temp

@@ -225,7 +225,8 @@ class Compute(compute.Compute):
         pass
 
     def change_status(self, status, instance=None, instance_id=None):
-        pass
+        if status == "shutoff":
+            self.stop_vm(instance_id)
 
     def wait_for_status(self, id_obj, status, limit_retry=90):
         #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

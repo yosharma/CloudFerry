@@ -164,15 +164,15 @@ class ClientCloudStack(object):
 
     def get_list_image_stores(self, **kwargs):
         cmd = "listImageStores"
-        select_field = ''
+        select_field = 'imagestore'
         opts = {}
         opts.update(kwargs if kwargs else {})
         result = self.build_api_cmd(cmd, opts)
         return self.processing_result(result, select_field)
 
-    def get_list_secondary_staging_stores(self, **kwargs):
-        cmd = "listSecondaryStagingStores"
-        select_field = ''
+    def get_list_secondary_stores(self, **kwargs):
+        cmd = "listStoragePools"
+        select_field = 'storagepool'
         opts = {}
         opts.update(kwargs if kwargs else {})
         result = self.build_api_cmd(cmd, opts)
@@ -181,6 +181,22 @@ class ClientCloudStack(object):
     def get_list_template(self, **kwargs):
         cmd = "listTemplates"
         select_field = 'template'
+        opts = {}
+        opts.update(kwargs if kwargs else {})
+        result = self.build_api_cmd(cmd, opts)
+        return self.processing_result(result, select_field)
+
+    def get_list_storage_providers(self, **kwargs):
+        cmd = "listStorageProviders"
+        select_field = ''
+        opts = {}
+        opts.update(kwargs if kwargs else {})
+        result = self.build_api_cmd(cmd, opts)
+        return self.processing_result(result, select_field)
+
+    def detach_volume(self, **kwargs):
+        cmd = "detachVolume"
+        select_field = ''
         opts = {}
         opts.update(kwargs if kwargs else {})
         result = self.build_api_cmd(cmd, opts)
