@@ -1,5 +1,6 @@
 paths: ['cloudferrylib.base.action', 'cloudferrylib.os.actions', 'cloudferrylib.cs.actions']
 tasks:
+   act_identity_trans: ['IdentityTransporter']
    act_attach_volumes: ['AttachVolumesCompute', 'dst_cloud']
    act_stop_vms: ['StopVms', 'src_cloud']
    act_net_prep: ['PrepareNetworks', 'dst_cloud']

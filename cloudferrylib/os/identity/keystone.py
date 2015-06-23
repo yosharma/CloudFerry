@@ -283,13 +283,13 @@ class KeystoneIdentity(identity.Identity):
                                               password)
                 continue
 
-            tenant_id = tenant_mapped_ids[user['tenantId']]
+            tenant_id = tenant_mapped_ids.get(user['tenantId'])
             _user['meta']['new_id'] = self.create_user(user['name'], password,
                                                        user['email'],
                                                        tenant_id).id
             if self.config['migrate']['keep_user_passwords']:
                 _user['meta']['overwrite_password'] = True
-            else:
+            elif user['email']:
                 self._passwd_notification(user['email'], user['name'],
                                           password)
 

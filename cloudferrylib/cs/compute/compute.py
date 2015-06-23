@@ -64,32 +64,56 @@ class Compute(compute.Compute):
         return status
 
     def __read_info_instances(self, **kwargs):
-        instances = self.client.get_instances(**getattr(kwargs, 'search_opts', {}))
+        info_instances = {}
+        for project in self.client.get_projects():
+            project_id = project['id']
+            project_name = self.client.get_tenant_name(project)
+            instances = self.client.get_instances(**getattr(kwargs,
+                                                            'search_opts',
+                                                            {'projectid':
+                                                                project_id}))
+            instances_new = self.__read_info_project_instances(instances,
+                                                               project_id,
+                                                               project_name)
+            info_instances.update(instances_new)
+        return info_instances
+
+    def __read_info_project_instances(self, instances, tenant_id, tenant_name):
         instances_new = {}
         for inst in instances:
             instances_new[inst['id']] = self.convert_instance(inst,
                                                               self.config,
                                                               self.cloud)
+            instances_new[inst['id']]['instance']['tenant_name'] = tenant_name
             flavor = self.__get_flavor(inst['serviceofferingid'],
-                                       inst['id'])
+                                       inst['id'],
+                                       tenant_id)
             instances_new[inst['id']]['instance']['flavors'] = [flavor]
-            instances_new[inst['id']]['diff'] = self.__get_diff(inst['id'])
+            instances_new[inst['id']]['diff'] = self.__get_diff(inst['id'],
+                                                                tenant_id)
             instances_new[inst['id']]['ephemeral'] = \
                 instances_new[inst['id']]['diff']
-            root = self.client.get_volumes(virtualmachineid=inst['id'], type="ROOT")[0]
+            root = self.client.get_volumes(virtualmachineid=inst['id'],
+                                           type="ROOT",
+                                           projectid=tenant_id)[0]
             instances_new[inst['id']]['instance']['rootDisk'] = [root]
             instances_new[inst['id']]['instance']['is_template'] = \
                 self.__is_load_from_template(inst['templateid'])
-            instances_new[inst['id']]['instance']['disks'] = self.__get_disks(inst['id'])
+            instances_new[inst['id']]['instance']['disks'] = \
+                self.__get_disks(inst['id'], tenant_id)
         return instances_new
 
-    def __get_disks(self, inst_id):
+    def __get_disks(self, inst_id, prj_id):
         type_disk = 'DATADISK'
-        volumes = self.client.get_volumes(virtualmachineid=inst_id, type=type_disk)
+        volumes = self.client.get_volumes(virtualmachineid=inst_id,
+                                          type=type_disk,
+                                          projectid=prj_id)
         return volumes
 
-    def __get_diff(self, inst_id):
-        root = self.client.get_volumes(virtualmachineid=inst_id, type="ROOT")[0]
+    def __get_diff(self, inst_id, prj_id):
+        root = self.client.get_volumes(virtualmachineid=inst_id,
+                                       type="ROOT",
+                                       projectid=prj_id)[0]
         diff = {
             'host_src': self.config.cloud.host,
             'host_dst': None,
@@ -98,9 +122,11 @@ class Compute(compute.Compute):
         }
         return diff
 
-    def __get_flavor(self, serviceofferingid, inst_id):
+    def __get_flavor(self, serviceofferingid, inst_id, prj_id):
         serviceoffering = self.client.get_service_offering(id=serviceofferingid)
-        root = self.client.get_volumes(virtualmachineid=inst_id, type="ROOT")[0]
+        root = self.client.get_volumes(virtualmachineid=inst_id,
+                                       type="ROOT",
+                                       projectid=prj_id)[0]
         flavor = {
             'name': serviceoffering[0]['name'],
             'ram': serviceoffering[0]['memory'],

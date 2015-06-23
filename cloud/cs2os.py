@@ -21,6 +21,7 @@ from cloudferrylib.scheduler import cursor
 from cloudferrylib.cs.compute import compute
 from cloudferrylib.os.compute import nova_compute
 from cloudferrylib.os.identity import keystone
+from cloudferrylib.cs.identity import identity
 from cloudferrylib.os.image import glance_image
 from cloudferrylib.os.storage import cinder_storage
 from cloudferrylib.os.network import neutron
@@ -56,7 +57,7 @@ class CS2OSFerry(cloud_ferry.CloudFerry):
                         'network': neutron.NeutronNetwork,
                         'compute': nova_compute.NovaCompute}
         resources = {'compute': compute.Compute,
-                     'identity': compute.Compute}
+                     'identity': identity.Identity}
         self.src_cloud = cloud.Cloud(resources, cloud.SRC, config)
         self.dst_cloud = cloud.Cloud(resources_os, cloud.DST, config)
         self.init = {
@@ -99,6 +100,7 @@ class CS2OSFerry(cloud_ferry.CloudFerry):
         is_instances = is_end_iter.IsEndIter(self.init)
         rename_info_iter = rename_info.RenameInfo(self.init, name_result, name_data)
         get_next_instance = get_info_iter.GetInfoIter(self.init)
+        task_resources_transporting = self.transport_resources()
         trans_one_inst = self.trans_one_inst()
         transport_instances_and_dependency_resources = \
             act_get_filter >> \
@@ -109,7 +111,13 @@ class CS2OSFerry(cloud_ferry.CloudFerry):
             save_result >> \
             (is_instances | get_next_instance) >>\
             rename_info_iter
-        return transport_instances_and_dependency_resources
+        return task_resources_transporting >> \
+            transport_instances_and_dependency_resources
+
+    def transport_resources(self):
+        act_identity_trans = \
+            identity_transporter.IdentityTransporter(self.init)
+        return act_identity_trans
 
     def trans_one_inst(self):
         act_stop_vms = stop_vm.StopVms(self.init, cloud='src_cloud')

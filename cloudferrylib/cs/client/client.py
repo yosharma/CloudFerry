@@ -15,7 +15,6 @@
 from fabric.api import local
 import json
 
-
 class ClientCloudStack(object):
     MODE_DISPLAY = 'json'
     SRC_CLI = "/usr/local/bin/cloudmonkey"
@@ -138,9 +137,58 @@ class ClientCloudStack(object):
         result = self.build_api_cmd(cmd, opts)
         return self.processing_result(result, select_field)
 
+    def get_projects(self, **kwargs):
+        cmd = "listProjects"
+        select_field = 'project'
+        opts = {'listall': "true"}
+        opts.update(kwargs if kwargs else {})
+        result = self.build_api_cmd(cmd, opts)
+        return self.processing_result(result, select_field)
 
+    def get_users(self, **kwargs):
+        cmd = "listUsers"
+        select_field = 'user'
+        opts = {'listall': "true"}
+        opts.update(kwargs if kwargs else {})
+        result = self.build_api_cmd(cmd, opts)
+        return self.processing_result(result, select_field)
 
+    def get_domains(self, **kwargs):
+        cmd = "listDomains"
+        select_field = 'domain'
+        opts = {}
+        opts.update(kwargs if kwargs else {})
+        result = self.build_api_cmd(cmd, opts)
+        return self.processing_result(result, select_field)
 
+    def get_accounts(self, **kwargs):
+        cmd = "listAccounts"
+        select_field = 'account'
+        opts = {'listall': "true"}
+        opts.update(kwargs if kwargs else {})
+        result = self.build_api_cmd(cmd, opts)
+        return self.processing_result(result, select_field)
 
+    def get_projectaccounts(self, pid, **kwargs):
+        cmd = "listProjectAccounts"
+        select_field = 'projectaccount'
+        opts = {'projectid': pid}
+        opts.update(kwargs if kwargs else {})
+        result = self.build_api_cmd(cmd, opts)
+        return self.processing_result(result, select_field)
 
+    def get_domain_prefix(self, domain_id):
+        domain = self.get_domains(id=domain_id)[0]
+        prefix = domain['path'].replace('/', '_').lstrip('ROOT').lstrip('_')
+        return prefix + "_" if prefix else ""
 
+    def get_user_name(self, user):
+        return self.get_domain_prefix(user['domainid']) + user['username']
+
+    def get_tenant_name(self, project):
+        return self.get_domain_prefix(project['domainid']) + project['name']
+
+    def get_account_name(self, account):
+        name = account['account'] if account.get('role') else account['name']
+        domain = self.get_domain_prefix(account['domainid'])
+        return name if name == "admin" else domain + name
