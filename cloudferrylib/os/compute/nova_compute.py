@@ -402,15 +402,12 @@ class NovaCompute(compute.Compute):
         nova_tenants_clients = {
             self.config['cloud']['tenant']: self.nova_client}
 
-        params = {'user': self.config['cloud']['user'],
-                  'password': self.config['cloud']['password'],
-                  'tenant': self.config['cloud']['tenant'],
-                  'host': self.config['cloud']['host']}
+        params = copy.deepcopy(self.config)
 
         for _instance in info_compute['instances'].itervalues():
             tenant_name = _instance['instance']['tenant_name']
             if tenant_name not in nova_tenants_clients:
-                params['tenant'] = tenant_name
+                params.cloud.tenant = tenant_name
                 nova_tenants_clients[tenant_name] = self.get_client(params)
 
         for _instance in info_compute['instances'].itervalues():
