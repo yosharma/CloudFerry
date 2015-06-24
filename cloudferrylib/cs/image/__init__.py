@@ -13,8 +13,4 @@
 # limitations under the License.
 
 
-from cloudferrylib.base.action import action
-
-
-class Converter(action.Action):
-    pass
+__author__ = 'asvechnikov'
