@@ -32,7 +32,13 @@ import data_storage
 from dry_run import chain
 from evacuation import evacuation_chain
 from make_filters import make_filters
+from remote_pdb import RemotePdb
+import signal
 
+def listen(host='127.0.0.1', port=4444):
+    def debug(sig, frame):
+        RemotePdb(host, port).set_trace()
+    signal.signal(signal.SIGUSR1, debug)  # Register handler
 
 env.forward_agent = True
 env.user = 'root'
@@ -53,6 +59,10 @@ def migrate(name_config=None, name_instance=None, debug=False):
     cfglib.init_config(name_config)
     utils.init_singletones(cfglib.CONF)
     env.key_filename = cfglib.CONF.migrate.key_filename
+    if debug:
+        #for debug need call kill -s 10 <pid_cloudferry>
+        #after you can connect telnet <host_debug> <port_debug>
+        listen(cfglib.CONF.migrate.host_debug, cfglib.CONF.migrate.port_debug)
     cloud = cloud_ferry.CloudFerry(cfglib.CONF)
     cloud.migrate(Scenario(path_scenario=cfglib.CONF.migrate.scenario,
                            path_tasks=cfglib.CONF.migrate.tasks_mapping))

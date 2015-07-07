@@ -150,7 +150,11 @@ migrate_opts = [
                      'OpenStack does not support user quotas (e.g. Grizzly)'),
     cfg.StrOpt('incloud_live_migration', default='nova',
                help='Live migration type used for in-cloud live migration. '
-                    'Possible values: "nova", "cobalt".')
+                    'Possible values: "nova", "cobalt".'),
+    cfg.StrOpt('host_debug', default='127.0.0.1',
+               help='Host for pdb debug'),
+    cfg.IntOpt('port_debug', default=4444,
+               help='Port for pdb debug'),
 ]
 
 mail = cfg.OptGroup(name='mail',

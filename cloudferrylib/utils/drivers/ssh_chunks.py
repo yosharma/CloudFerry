@@ -22,6 +22,7 @@ from fabric.api import settings
 
 from cloudferrylib.utils import driver_transporter
 from cloudferrylib.utils import utils
+import sys
 
 
 LOG = utils.get_log(__name__)
