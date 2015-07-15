@@ -155,6 +155,8 @@ migrate_opts = [
                help='Host for pdb debug'),
     cfg.IntOpt('port_debug', default=4444,
                help='Port for pdb debug'),
+    cfg.IntOpt('command_timeout', default=1800,
+               help='Timeout Fabric run command')
 ]
 
 mail = cfg.OptGroup(name='mail',

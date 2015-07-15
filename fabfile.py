@@ -63,6 +63,7 @@ def migrate(name_config=None, name_instance=None, debug=False):
         #for debug need call kill -s 10 <pid_cloudferry>
         #after you can connect telnet <host_debug> <port_debug>
         listen(cfglib.CONF.migrate.host_debug, cfglib.CONF.migrate.port_debug)
+    env.command_timeout = cfglib.CONF.migrate.command_timeout
     cloud = cloud_ferry.CloudFerry(cfglib.CONF)
     cloud.migrate(Scenario(path_scenario=cfglib.CONF.migrate.scenario,
                            path_tasks=cfglib.CONF.migrate.tasks_mapping))
