@@ -54,6 +54,8 @@ def migrate(name_config=None, name_instance=None, debug=False):
         :name_config - name of config yaml-file, example 'config.yaml'
     """
     if debug:
+        import logging
+        logging.basicConfig(level=logging.DEBUG)
         utils.configure_logging("DEBUG")
     cfglib.collector_configs_plugins()
     cfglib.init_config(name_config)
