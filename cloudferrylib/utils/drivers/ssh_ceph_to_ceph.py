@@ -58,4 +58,4 @@ class SSHCephToCeph(driver_transporter.DriverTransporter):
             process = rbd_export_diff >> ssh_rbd_import_diff
             process = process(*process_params)
 
-            self.src_cloud.ssh_util.execute(process)
+            self.src_cloud.ssh_util.execute(process, run_fa=True)

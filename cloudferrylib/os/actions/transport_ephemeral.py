@@ -89,8 +89,8 @@ class TransportEphemeral(action.Action):
                                       host_instance):
         with settings(host_string=host_cloud):
             with forward_agent(env.key_filename):
-                run("ssh -oStrictHostKeyChecking=no %s  'rm -rf %s'" %
-                    (host_instance, path_file))
+                utl.run_fa_fix("ssh -oStrictHostKeyChecking=no %s  'rm -rf %s'" %
+                               (host_instance, path_file))
 
     def copy_data_via_ssh(self, src_cloud, dst_cloud, info, body, resources,
                           types):

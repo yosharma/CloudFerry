@@ -40,4 +40,4 @@ class SSHCephToFile(driver_transporter.DriverTransporter):
             process = process(data['path_src'], '-', '1M',
                               data['path_dst'])
 
-            self.src_cloud.ssh_util.execute(process)
+            self.src_cloud.ssh_util.execute(process, run_fa=True)

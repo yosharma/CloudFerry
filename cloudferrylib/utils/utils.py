@@ -92,8 +92,14 @@ META_INFO = 'meta'
 OLD_ID = 'old_id'
 
 FILTER_PATH = 'configs/filter.yaml'
+ssh_command = "ssh -A -o StrictHostKeyChecking=no %s@%s \"%s\""
 
 up_ssh_tunnel = None
+
+
+def run_fa_fix(cmd, *args, **kwargs):
+    cmd = ssh_command % (env.user, env.host_string, cmd)
+    return local(cmd, capture=True)
 
 
 class ext_dict(dict):
@@ -358,12 +364,13 @@ class wrapper_singletone_ssh_tunnel:
             if port in self.busy_port:
                 self.busy_port.remove(port)
 
-    def __call__(self, address_dest_compute, address_dest_controller, host, **kwargs):
+    def __call__(self, address_dest_compute, address_dest_controller, host, local_run=False):
         return up_ssh_tunnel_class(address_dest_compute,
                                    address_dest_controller,
                                    host,
                                    self.get_free_port,
-                                   self.free_port)
+                                   self.free_port,
+                                   local_run)
 
 
 class up_ssh_tunnel_class:
@@ -372,19 +379,24 @@ class up_ssh_tunnel_class:
         Up ssh tunnel on dest controller node for transferring data
     """
 
-    def __init__(self, address_dest_compute, address_dest_controller, host, callback_get, callback_free):
+    def __init__(self, address_dest_compute, address_dest_controller, host, callback_get, callback_free, local_run):
         self.address_dest_compute = address_dest_compute
         self.address_dest_controller = address_dest_controller
         self.get_free_port = callback_get
         self.remove_port = callback_free
         self.host = host
+        self.local_run = local_run
         self.cmd = "ssh -oStrictHostKeyChecking=no -L %s:%s:22 -R %s:localhost:%s %s -Nf"
 
     def __enter__(self):
         self.port = self.get_free_port()
+        cmd = self.cmd % (self.port, self.address_dest_compute, self.port, self.port,
+                          self.address_dest_controller) + " && sleep 2"
         with settings(host_string=self.host):
-            run(self.cmd % (self.port, self.address_dest_compute, self.port, self.port,
-                            self.address_dest_controller) + " && sleep 2")
+            if self.local_run:
+                local(cmd)
+            else:
+                run(cmd)
         return self.port
 
     def __exit__(self, type, value, traceback):

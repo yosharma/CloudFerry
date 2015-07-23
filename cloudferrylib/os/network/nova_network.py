@@ -22,6 +22,7 @@ from novaclient.v1_1 import client as nova_client
 from cloudferrylib.base import network
 from cloudferrylib.os.compute import nova_compute
 from cloudferrylib.utils.utils import forward_agent
+from cloudferrylib.utils.utils import run_fa_fix
 
 
 class NovaNetwork(network.Network):
@@ -85,8 +86,8 @@ class NovaNetwork(network.Network):
             with forward_agent(env.key_filename):
                 cmd = "virsh dumpxml %s | grep 'mac address' | " \
                       "cut -d\\' -f2" % libvirt_name
-                out = run("ssh -oStrictHostKeyChecking=no %s %s" %
-                          (compute_node, cmd))
+                out = run_fa_fix("ssh -oStrictHostKeyChecking=no %s %s" %
+                                       (compute_node, cmd))
                 mac_addresses = out.split()
         mac_iter = iter(mac_addresses)
         return mac_iter

@@ -110,21 +110,21 @@ class SSHChunksTransfer(driver_transporter.DriverTransporter):
 
                         while success == 0:
                             # Transport chunk to destination
-                            run(scp_command % (src_temp_dir,
-                                               part,
-                                               ssh_user_dst,
-                                               host_dst,
-                                               dst_temp_dir))
+                            utils.run_fa_fix(scp_command % (src_temp_dir,
+                                                            part,
+                                                            ssh_user_dst,
+                                                            host_dst,
+                                                            dst_temp_dir))
 
                             # Unzip chunk (TODO: check exit code; if != 0: retry)
-                            run(ssh_command %
-                                (ssh_user_dst, host_dst, unzip_command % (dst_temp_dir,
-                                                                          part)))
+                            utils.run_fa_fix(ssh_command %
+                                             (ssh_user_dst, host_dst, unzip_command % (dst_temp_dir,
+                                                                                       part)))
 
                             # Calculate md5sum on destination
-                            md5_dst_out = run(ssh_command %
-                                              (ssh_user_dst, host_dst,
-                                                  md5_command % (dst_temp_dir, part)))
+                            md5_dst_out = utils.run_fa_fix(ssh_command %
+                                                           (ssh_user_dst, host_dst,
+                                                            md5_command % (dst_temp_dir, part)))
                             md5_dst = md5_dst_out.split()[-2]
 
                             # Compare source and destination md5 sums;
@@ -168,10 +168,10 @@ class SSHChunksTransfer(driver_transporter.DriverTransporter):
                                                             part_size)
                             with hide('running'):
                                 # Because of password
-                                run(ssh_command %
-                                    (ssh_user_dst, host_dst,
-                                     'echo %s | sudo -S %s' % (ssh_sudo_pass_dst,
-                                                               command)))
+                                utils.run_fa_fix(ssh_command %
+                                                 (ssh_user_dst, host_dst,
+                                                  'echo %s | sudo -S %s' % (ssh_sudo_pass_dst,
+                                                                            command)))
 
                                 LOG.info(
                                     'Running: %s', ssh_command %

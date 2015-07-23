@@ -15,22 +15,11 @@
 
 import copy
 
-from fabric.api import env
-from fabric.api import run
-from fabric.api import settings
 
 from cloudferrylib.base.action import action
-from cloudferrylib.os.actions import convert_file_to_image
-from cloudferrylib.os.actions import convert_image_to_file
-from cloudferrylib.os.actions import convert_volume_to_image
-from cloudferrylib.os.actions import copy_g2g
-from cloudferrylib.os.actions import task_transfer
-from cloudferrylib.utils import utils as utl, forward_agent
 
-from cloudferrylib.utils.drivers import ssh_ceph_to_ceph
-from cloudferrylib.utils.drivers import ssh_ceph_to_file
-from cloudferrylib.utils.drivers import ssh_file_to_file
-from cloudferrylib.utils.drivers import ssh_file_to_ceph
+from cloudferrylib.os.actions import task_transfer
+from cloudferrylib.utils import utils as utl
 
 
 CLOUD = 'cloud'

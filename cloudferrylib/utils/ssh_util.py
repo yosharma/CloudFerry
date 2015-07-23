@@ -18,6 +18,7 @@ from fabric.api import settings
 
 import cmd_cfg
 from utils import forward_agent
+from utils import run_fa_fix
 
 
 class SshUtil(object):
@@ -26,15 +27,21 @@ class SshUtil(object):
         self.host = host if host else cloud.host
         self.config_migrate = config_migrate
 
-    def execute(self, cmd, internal_host=None, host_exec=None):
+    def execute(self, cmd, internal_host=None, host_exec=None, run_fa=False):
         host = host_exec if host_exec else self.host
         with settings(host_string=host,
                       user=self.cloud.ssh_user):
             if internal_host:
-                return self.execute_on_inthost(str(cmd), internal_host)
+                return self.execute_on_inthost(str(cmd), internal_host, run_fa)
             else:
-                return run(str(cmd))
+                if run_fa:
+                    return run_fa_fix(str(cmd))
+                else:
+                    return run(str(cmd))
 
-    def execute_on_inthost(self, cmd, host):
+    def execute_on_inthost(self, cmd, host, run_fa=False):
         with forward_agent(self.config_migrate.key_filename):
-            return run(str(cmd_cfg.ssh_cmd(host, str(cmd))))
+            if not run_fa:
+                return run(str(cmd_cfg.ssh_cmd(host, str(cmd))))
+            else:
+                return run_fa_fix(str(cmd_cfg.ssh_cmd(host, str(cmd))))

@@ -50,7 +50,7 @@ class SSHFileToFile(driver_transporter.DriverTransporter):
                                   '1M',
                                   data['path_dst'])
 
-                self.src_cloud.ssh_util.execute(process)
+                self.src_cloud.ssh_util.execute(process, run_fa=True)
 
             elif self.cfg.migrate.file_compression == "gzip":
                 dd = cmd_cfg.dd_cmd_of
@@ -66,7 +66,7 @@ class SSHFileToFile(driver_transporter.DriverTransporter):
                 process = process(self.cfg.migrate.level_compression,
                                   data['path_src'], '1M', data['path_dst'])
 
-                self.src_cloud.ssh_util.execute(process)
+                self.src_cloud.ssh_util.execute(process, run_fa=True)
 
     def transfer_direct(self, data):
         LOG.debug("| | copy file")
@@ -91,7 +91,7 @@ class SSHFileToFile(driver_transporter.DriverTransporter):
                                   data['path_dst'])
 
                 self.src_cloud.ssh_util.execute(process,
-                                                host_exec=data['host_src'])
+                                                host_exec=data['host_src'], run_fa=True)
 
             elif self.cfg.migrate.file_compression == "gzip":
                 dd = cmd_cfg.dd_cmd_of
@@ -106,4 +106,4 @@ class SSHFileToFile(driver_transporter.DriverTransporter):
                                   data['path_src'], '1M', data['path_dst'])
 
                 self.src_cloud.ssh_util.execute(process,
-                                                host_exec=data['host_src'])
+                                                host_exec=data['host_src'], run_fa=True)
