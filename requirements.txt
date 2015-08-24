@@ -17,5 +17,3 @@ pyyaml
 redis
 sqlalchemy
 oslo.config==1.15.0
-# see https://github.com/paramiko/paramiko/issues/570 and https://github.com/paramiko/paramiko/pull/571
--e git://github.com/mirrorcoder/paramiko.git#egg=paramiko
